@@ -3,13 +3,12 @@ import { useDispatch } from 'react-redux'
 import { useNavigate, Link } from 'react-router-dom'
 import { useLoginMutation } from '../../store/api/authApi'
 import { setCredentials } from '../../store/slices/authSlice'
-import { useToast } from '../../hooks/useToast'
+import toast from 'react-hot-toast'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
 const LoginForm: React.FC = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { success, error } = useToast()
   const [loginMutation, { isLoading }] = useLoginMutation()
 
   const [formData, setFormData] = useState({
@@ -89,8 +88,16 @@ const LoginForm: React.FC = () => {
       }))
       console.log('💾 LoginForm: Auth state updated in Redux')
       
-      success('Login successful!')
-      navigate('/dashboard')
+      // Show success toast
+      toast.success('Login successful!', {
+        icon: '✅',
+        duration: 3000,
+      })
+      
+      // Navigate after a short delay to show the toast
+      setTimeout(() => {
+        navigate('/dashboard')
+      }, 500)
     } catch (err: any) {
       console.log('❌ LoginForm: Login failed', err)
       console.log('❌ LoginForm: Error details:', {
@@ -100,8 +107,27 @@ const LoginForm: React.FC = () => {
         originalStatus: err?.originalStatus,
         error: err?.error
       })
-      const errorMessage = err?.message || err?.data || err?.error || 'Connection failed - check if backend server is running'
-      error('Login failed', errorMessage)
+      
+      // Extract error message from different possible error structures
+      let errorMessage = 'Login failed. Please check your credentials and try again.'
+      
+      if (err?.data?.message) {
+        errorMessage = err.data.message
+      } else if (err?.data?.error) {
+        errorMessage = err.data.error
+      } else if (err?.message) {
+        errorMessage = err.message
+      } else if (err?.error) {
+        errorMessage = err.error
+      } else if (err?.status === 'FETCH_ERROR' || err?.status === 'PARSING_ERROR') {
+        errorMessage = 'Connection failed. Please check if the backend server is running.'
+      }
+      
+      // Show error toast
+      toast.error(errorMessage, {
+        icon: '❌',
+        duration: 4000,
+      })
     }
   }
 

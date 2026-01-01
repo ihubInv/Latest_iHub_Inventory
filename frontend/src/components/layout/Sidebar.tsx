@@ -116,9 +116,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
         collapsed ? 'w-20' : 'w-64'
       }`}>
       
-        <div className={`flex items-center justify-between p-4 border-b border-white/10 transition-all hover:bg-white/5 ${collapsed ? 'px-2' : 'px-6'}`}>
-          {/* Logo + Title (click to toggle) */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={onToggle} title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}>
+        <div className={`flex items-center justify-between p-4 border-b border-white/10 transition-all ${collapsed ? 'px-2' : 'px-6'}`}>
+          {/* Logo + Title */}
+          <div className="flex items-center space-x-3">
             <div className="relative">
               <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-[#0d559e] via-[#1a6bb8] to-[#2c7bc7] hover:from-[#0a4a8a] hover:via-[#155a9e] hover:to-[#256bb6] rounded-2xl shadow-lg transition-all duration-200">
                 <span className="text-lg font-bold text-white">I</span>
@@ -132,6 +132,20 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
               </div>
             )}
           </div>
+          
+          {/* Minimize/Maximize Button */}
+          <button
+            onClick={onToggle}
+            className={`flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 text-white hover:scale-110 ${collapsed ? 'mx-auto' : ''}`}
+            title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+            aria-label={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {collapsed ? (
+              <ChevronRight size={18} className="text-white" />
+            ) : (
+              <ChevronLeft size={18} className="text-white" />
+            )}
+          </button>
         </div>
 
         {/* User Info */}
