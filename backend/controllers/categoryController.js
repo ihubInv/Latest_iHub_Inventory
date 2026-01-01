@@ -166,7 +166,7 @@ const updateCategory = asyncHandler(async (req, res) => {
 
 // @desc    Delete category
 // @route   DELETE /api/categories/:id
-// @access  Private (Admin)
+// @access  Private (Admin/Stock Manager)
 const deleteCategory = asyncHandler(async (req, res) => {
   const category = await Category.findById(req.params.id);
 

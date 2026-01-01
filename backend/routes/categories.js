@@ -492,7 +492,7 @@ router.get('/stats', getCategoryStats);
  */
 router.get('/:id', validateObjectId('id'), getCategory);
 router.put('/:id', authorize('admin', 'stock-manager'), validateObjectId('id'), updateCategory);
-router.delete('/:id', authorize('admin'), validateObjectId('id'), deleteCategory);
+router.delete('/:id', authorize('admin', 'stock-manager'), validateObjectId('id'), deleteCategory);
 
 // Public routes (for all authenticated users)
 router.get('/', validatePagination, validateSearch, getCategories);
