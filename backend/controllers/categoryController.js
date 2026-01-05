@@ -320,6 +320,20 @@ const removeAssetName = asyncHandler(async (req, res) => {
     });
   }
 
+  // Check if asset name is used in inventory items
+  const InventoryItem = require('../models/InventoryItem');
+  const inventoryItems = await InventoryItem.find({ 
+    assetname: { $regex: new RegExp(`^${assetName}$`, 'i') },
+    assetcategoryid: category._id
+  });
+
+  if (inventoryItems.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: `Cannot delete asset name "${assetName}" - it is used in ${inventoryItems.length} inventory item(s)`
+    });
+  }
+
   await category.removeAssetName(assetName);
 
   const updatedCategory = await Category.findById(category._id)

@@ -970,6 +970,9 @@ const handleFile = (file?: File) => {
                   required
                   placeholder="Select asset name from category"
                   searchable
+                  inventoryItems={inventoryItems}
+                  showAddButton={true}
+                  showDeleteButton={true}
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   🔤 First 3 letters will be used as asset code: <span className="font-mono font-semibold text-blue-600">{generateAssetCode(formData.assetnamefromcategory || formData.assetname) || 'XXX'}</span>
@@ -1613,6 +1616,9 @@ const handleFile = (file?: File) => {
                                 required
                                 placeholder={`Select ${it.categorytype === 'major' ? 'Major' : 'Minor'} Asset Name`}
                                 searchable
+                                inventoryItems={inventoryItems}
+                                showAddButton={true}
+                                showDeleteButton={true}
                               />
                             </div>
                           )}
