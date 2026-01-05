@@ -91,6 +91,11 @@ export const inventoryApi = baseApi.injectEndpoints({
       query: () => '/inventory/available-asset-names',
       providesTags: ['InventoryItem', 'Request'],
     }),
+    getNextSerialPreview: builder.query<{ success: boolean; data: { currentSequence: number; nextSerial: number; nextSerialFormatted: string } }, void>({
+      query: () => '/inventory/next-serial-preview',
+      providesTags: ['InventoryItem'],
+      keepUnusedDataFor: 0, // Don't cache - always fetch fresh data
+    }),
     getLowStockItems: builder.query<InventoryResponse, PaginationParams>({
       query: (params) => ({
         url: '/inventory/low-stock',
@@ -197,4 +202,5 @@ export const {
   useBulkUpdateInventoryMutation,
   useUploadInventoryAttachmentMutation,
   useGetAttachmentUrlQuery,
+  useGetNextSerialPreviewQuery,
 } = inventoryApi

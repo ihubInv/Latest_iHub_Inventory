@@ -203,7 +203,8 @@ inventoryItemSchema.index({ issuedto: 1 });
 inventoryItemSchema.index({ createdby: 1 });
 inventoryItemSchema.index({ locationid: 1 });
 inventoryItemSchema.index({ locationofitem: 1 });
-inventoryItemSchema.index({ productserialnumber: 1 }, { unique: true, sparse: true });
+// Removed unique index on productserialnumber to allow duplicates and empty values
+// inventoryItemSchema.index({ productserialnumber: 1 }, { unique: true, sparse: true });
 
 // Virtual for stock status
 inventoryItemSchema.virtual('stockStatus').get(function() {

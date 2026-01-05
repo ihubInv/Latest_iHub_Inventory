@@ -13,7 +13,8 @@ const {
   getInventoryStats,
   getInventoryTransactions,
   bulkUpdateInventoryItems,
-  getAvailableAssetNames
+  getAvailableAssetNames,
+  getNextSerialPreview
 } = require('../controllers/inventoryController');
 const { protect, authorize } = require('../middleware/auth');
 const { validateInventoryItem, validateObjectId, validatePagination, validateSearch, validateDateRange } = require('../middleware/validation');
@@ -150,6 +151,44 @@ router.get('/available', getAvailableInventoryItems);
  *         $ref: '#/components/responses/ServerError'
  */
 router.get('/available-asset-names', getAvailableAssetNames);
+
+/**
+ * @swagger
+ * /api/inventory/next-serial-preview:
+ *   get:
+ *     summary: Get next serial number preview (read-only, does not increment counter)
+ *     tags: [Inventory]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Next serial number preview retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     currentSequence:
+ *                       type: number
+ *                       example: 2
+ *                     nextSerial:
+ *                       type: number
+ *                       example: 3
+ *                     nextSerialFormatted:
+ *                       type: string
+ *                       example: "003"
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+router.get('/next-serial-preview', getNextSerialPreview);
 
 /**
  * @swagger

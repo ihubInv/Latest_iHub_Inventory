@@ -4,6 +4,7 @@ const InventoryTransaction = require('../models/InventoryTransaction');
 const Request = require('../models/Request');
 const ReturnRequest = require('../models/ReturnRequest');
 const Location = require('../models/Location');
+const SerialNumberCounter = require('../models/SerialNumberCounter');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { AppError } = require('../middleware/errorHandler');
 
@@ -106,6 +107,52 @@ const getInventoryItem = asyncHandler(async (req, res) => {
   });
 });
 
+// Helper function to generate asset code from asset name
+const generateAssetCode = (assetName) => {
+  if (!assetName) return '---';
+  // Take first 3 letters and convert to uppercase, remove non-alphabetic characters
+  return assetName.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase().padEnd(3, '-');
+};
+
+// Helper function to generate unique ID with global serial number
+const generateUniqueIdWithGlobalSerial = async (financialyear, assetname, locationofitem) => {
+  // Get next global serial number atomically
+  const serialNumber = await SerialNumberCounter.getNextSequence();
+  const serialNumberStr = serialNumber.toString().padStart(3, '0');
+  
+  // Build unique ID: IHUB/{financialyear}/{assetcode}/{location}/{serial}
+  let uniqueId = 'IHUB/';
+  
+  // Add financial year or placeholder
+  if (financialyear) {
+    uniqueId += financialyear;
+  } else {
+    uniqueId += '--';
+  }
+  uniqueId += '/';
+  
+  // Add asset code or placeholder
+  if (assetname) {
+    uniqueId += generateAssetCode(assetname);
+  } else {
+    uniqueId += '---';
+  }
+  uniqueId += '/';
+  
+  // Add location or placeholder
+  if (locationofitem) {
+    uniqueId += locationofitem.trim();
+  } else {
+    uniqueId += '--';
+  }
+  uniqueId += '/';
+  
+  // Add global serial number
+  uniqueId += serialNumberStr;
+  
+  return uniqueId;
+};
+
 // @desc    Create inventory item
 // @route   POST /api/inventory
 // @access  Private (Admin/Stock Manager)
@@ -127,8 +174,53 @@ const createInventoryItem = asyncHandler(async (req, res) => {
     }
   }
 
+  // Generate unique ID with global serial number if not provided or contains placeholder
+  let uniqueId = req.body.uniqueid;
+  const uniqueIdUpper = uniqueId ? uniqueId.toUpperCase().trim() : '';
+  // Treat empty, AUTO, or ??? as placeholder - generate new unique ID
+  if (!uniqueId || uniqueId.trim() === '' || uniqueIdUpper.includes('AUTO') || uniqueIdUpper.includes('???')) {
+    // Ensure counter is initialized/synced with actual inventory count
+    const currentCounter = await SerialNumberCounter.getCurrentSequence();
+    if (currentCounter === 0) {
+      // Sync counter with actual inventory count if it's not initialized
+      const totalItems = await InventoryItem.countDocuments();
+      if (totalItems > 0) {
+        await SerialNumberCounter.findByIdAndUpdate(
+          'global',
+          { sequenceValue: totalItems },
+          { upsert: true, new: true }
+        );
+      }
+    }
+    
+    // Generate unique ID using global serial number
+    uniqueId = await generateUniqueIdWithGlobalSerial(
+      req.body.financialyear,
+      req.body.assetname || req.body.assetnamefromcategory,
+      req.body.locationofitem
+    );
+  } else {
+    // Check for duplicate unique ID before creating
+    const existingItem = await InventoryItem.findOne({ 
+      uniqueid: uniqueId.toUpperCase().trim() 
+    });
+    
+    if (existingItem) {
+      return res.status(400).json({
+        success: false,
+        message: `uniqueid already exists: ${uniqueId}. Please use a different unique ID.`
+      });
+    }
+    uniqueId = uniqueId.toUpperCase().trim();
+  }
+
+  // Convert empty productserialnumber to undefined to avoid validation issues
+  const productserialnumber = req.body.productserialnumber?.trim();
+  
   const inventoryData = {
     ...req.body,
+    uniqueid: uniqueId,
+    productserialnumber: productserialnumber && productserialnumber !== '' ? productserialnumber : undefined,
     createdby: req.user.id,
     lastmodifiedby: req.user.name
   };
@@ -189,7 +281,13 @@ const updateInventoryItem = asyncHandler(async (req, res) => {
   // Update fields
   Object.keys(req.body).forEach(key => {
     if (req.body[key] !== undefined) {
-      inventoryItem[key] = req.body[key];
+      // Convert empty productserialnumber to undefined
+      if (key === 'productserialnumber') {
+        const value = req.body[key]?.trim();
+        inventoryItem[key] = value && value !== '' ? value : undefined;
+      } else {
+        inventoryItem[key] = req.body[key];
+      }
     }
   });
 
@@ -551,6 +649,67 @@ const bulkUpdateInventoryItems = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get next serial number preview (current sequence + 1, read-only)
+// @route   GET /api/inventory/next-serial-preview
+// @access  Private
+const getNextSerialPreview = asyncHandler(async (req, res) => {
+  try {
+    // Always sync counter with actual inventory count to ensure accuracy
+    const totalItems = await InventoryItem.countDocuments();
+    
+    // Get current counter value
+    let currentSequence = await SerialNumberCounter.getCurrentSequence();
+    
+    // If counter is less than actual item count, sync it
+    // This handles cases where items were created before the counter system
+    if (currentSequence < totalItems) {
+      await SerialNumberCounter.findByIdAndUpdate(
+        'global',
+        { sequenceValue: totalItems },
+        { upsert: true, new: true }
+      );
+      currentSequence = totalItems;
+    }
+    
+    const nextSerial = currentSequence + 1;
+    const nextSerialFormatted = nextSerial.toString().padStart(3, '0');
+    
+    res.json({
+      success: true,
+      data: {
+        currentSequence,
+        nextSerial,
+        nextSerialFormatted
+      }
+    });
+  } catch (error) {
+    console.error('Error getting serial preview:', error);
+    // Fallback: use inventory count directly
+    try {
+      const totalItems = await InventoryItem.countDocuments();
+      const nextSerial = totalItems + 1;
+      res.json({
+        success: true,
+        data: {
+          currentSequence: totalItems,
+          nextSerial,
+          nextSerialFormatted: nextSerial.toString().padStart(3, '0')
+        }
+      });
+    } catch (countError) {
+      // Final fallback
+      res.json({
+        success: true,
+        data: {
+          currentSequence: 0,
+          nextSerial: 1,
+          nextSerialFormatted: '001'
+        }
+      });
+    }
+  }
+});
+
 // @desc    Get available asset names for requests (excluding pending/approved requests)
 // @route   GET /api/inventory/available-asset-names
 // @access  Private
@@ -607,5 +766,6 @@ module.exports = {
   getInventoryStats,
   getInventoryTransactions,
   bulkUpdateInventoryItems,
-  getAvailableAssetNames
+  getAvailableAssetNames,
+  getNextSerialPreview
 };

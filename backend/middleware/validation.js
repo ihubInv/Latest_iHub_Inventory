@@ -96,9 +96,17 @@ const validateLogin = [
 // Inventory item validation rules
 const validateInventoryItem = [
   body('uniqueid')
+    .optional()
     .trim()
-    .notEmpty()
-    .withMessage('Unique ID is required'),
+    .custom((value) => {
+      // Allow empty string or undefined (backend will generate it)
+      if (!value || value === '' || value.toUpperCase().includes('AUTO')) {
+        return true;
+      }
+      // If provided, it must not be empty after trimming
+      return value.trim().length > 0;
+    })
+    .withMessage('Unique ID will be generated automatically if not provided'),
   body('financialyear')
     .trim()
     .notEmpty()
@@ -271,8 +279,8 @@ const validatePagination = [
     .withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage('Limit must be between 1 and 100'),
+    .isInt({ min: 1, max: 10000 })
+    .withMessage('Limit must be between 1 and 10000'),
   query('sort')
     .optional()
     .custom((value) => {
