@@ -42,9 +42,8 @@ const inventoryItemSchema = new mongoose.Schema({
   },
   productserialnumber: {
     type: String,
-    // // required: [true, 'Product serial number is required'],
-    trim: true,
-    unique: true
+    trim: true
+    // unique and sparse index defined below
   },
   vendorname: {
     type: String,
@@ -204,6 +203,7 @@ inventoryItemSchema.index({ issuedto: 1 });
 inventoryItemSchema.index({ createdby: 1 });
 inventoryItemSchema.index({ locationid: 1 });
 inventoryItemSchema.index({ locationofitem: 1 });
+inventoryItemSchema.index({ productserialnumber: 1 }, { unique: true, sparse: true });
 
 // Virtual for stock status
 inventoryItemSchema.virtual('stockStatus').get(function() {

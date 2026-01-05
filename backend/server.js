@@ -47,7 +47,9 @@ app.use(cors({
   origin: '*',
   credentials: false, // Must be false when origin is '*'
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400 // 24 hours
 }));
 // Compression middleware
 app.use(compression());
@@ -163,10 +165,11 @@ process.on('uncaughtException', (err) => {
 });
 
 const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || '0.0.0.0'; // Listen on all interfaces
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`
-🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}
+🚀 Server running in ${process.env.NODE_ENV} mode on ${HOST}:${PORT}
 📊 API Documentation:  http://31.97.60.2:${PORT}/api/health
 🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:1500' || ' http://31.97.60.2:5173/'}
 📁 Upload Directory: ${path.join(__dirname, 'uploads')}

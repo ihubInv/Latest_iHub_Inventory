@@ -392,7 +392,6 @@ router.get('/', validatePagination, validateSearch, getInventoryItems);
  *             required:
  *               - uniqueid
  *               - assetname
- *               - productserialnumber
  *               - vendorname
  *               - quantityperitem
  *               - rateinclusivetax

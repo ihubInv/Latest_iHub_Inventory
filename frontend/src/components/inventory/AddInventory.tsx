@@ -48,7 +48,7 @@ const AddInventory: React.FC = () => {
     assetcategory: string;
     assetcategoryid: string;
     makemodel: string;
-    productserialnumber: string;
+    productserialnumber?: string;
     vendorname: string;
     rateinclusivetax: number;
     totalcost: number;

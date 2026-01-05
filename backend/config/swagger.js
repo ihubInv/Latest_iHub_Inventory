@@ -87,7 +87,7 @@ const options = {
         },
         InventoryItem: {
           type: 'object',
-          required: ['uniqueid', 'assetname', 'productserialnumber', 'vendorname', 'quantityperitem', 'rateinclusivetax', 'totalcost', 'locationofitem'],
+          required: ['uniqueid', 'assetname', 'vendorname', 'quantityperitem', 'rateinclusivetax', 'totalcost', 'locationofitem'],
           properties: {
             _id: {
               type: 'string',

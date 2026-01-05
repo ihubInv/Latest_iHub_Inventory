@@ -115,9 +115,10 @@ const validateInventoryItem = [
     .notEmpty()
     .withMessage('Asset name is required'),
   body('productserialnumber')
+    .optional()
     .trim()
-    .notEmpty()
-    .withMessage('Product serial number is required'),
+    .isLength({ max: 200 })
+    .withMessage('Product serial number cannot exceed 200 characters'),
   body('vendorname')
     .trim()
     .notEmpty()

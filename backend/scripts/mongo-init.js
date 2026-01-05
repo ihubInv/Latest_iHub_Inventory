@@ -30,7 +30,7 @@ db.users.createIndex({ role: 1 });
 db.users.createIndex({ isactive: 1 });
 
 db.inventoryitems.createIndex({ uniqueid: 1 }, { unique: true });
-db.inventoryitems.createIndex({ productserialnumber: 1 }, { unique: true });
+db.inventoryitems.createIndex({ productserialnumber: 1 }, { unique: true, sparse: true });
 db.inventoryitems.createIndex({ assetcategory: 1 });
 db.inventoryitems.createIndex({ status: 1 });
 db.inventoryitems.createIndex({ balancequantityinstock: 1 });

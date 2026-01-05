@@ -50,7 +50,7 @@ export interface InventoryItem {
   assetname: string;
   specification: string;
   makemodel: string;
-  productserialnumber: string;
+  productserialnumber?: string;
   vendorname: string;
   quantityperitem: number;
   rateinclusivetax: number;
