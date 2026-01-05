@@ -21,6 +21,7 @@ interface AssetNameDropdownProps {
   inventoryItems?: InventoryItem[]; // For checking if asset name is used
   showAddButton?: boolean; // Show add/delete buttons
   showDeleteButton?: boolean; // Show delete button for each asset name
+  onCategoriesChange?: () => void; // Callback to refetch categories after mutation
 }
 
 const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
@@ -34,6 +35,7 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
   inventoryItems = [],
   showAddButton = true,
   showDeleteButton = true,
+  onCategoriesChange,
   ...props
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -111,6 +113,11 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
       setNewAssetDescription('');
       setShowAddModal(false);
       
+      // Refetch categories to update the list
+      if (onCategoriesChange) {
+        onCategoriesChange();
+      }
+      
       // Select the newly added asset name
       onChange(newAssetName.trim());
     } catch (error: any) {
@@ -139,6 +146,11 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
 
       toast.success('Asset name deleted successfully!');
       setAssetNameToDelete(null);
+      
+      // Refetch categories to update the list
+      if (onCategoriesChange) {
+        onCategoriesChange();
+      }
       
       // Clear selection if deleted asset was selected
       if (value === assetName) {

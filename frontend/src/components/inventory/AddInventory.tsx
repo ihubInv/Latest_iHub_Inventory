@@ -28,7 +28,7 @@ import { bulkUploadInventory } from '../../services/bulkUploadService';
 const AddInventory: React.FC = () => {
   const [createInventoryItem] = useCreateInventoryItemMutation();
   const [uploadAttachment] = useUploadInventoryAttachmentMutation();
-  const { data: categoriesResponse } = useGetCategoriesQuery({});
+  const { data: categoriesResponse, refetch: refetchCategories } = useGetCategoriesQuery({});
   const categories = categoriesResponse?.data || [];
   const { data: inventoryResponse } = useGetInventoryItemsQuery({});
   const inventoryItems = inventoryResponse?.data || [];
@@ -973,6 +973,7 @@ const handleFile = (file?: File) => {
                   inventoryItems={inventoryItems}
                   showAddButton={true}
                   showDeleteButton={true}
+                  onCategoriesChange={refetchCategories}
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   🔤 First 3 letters will be used as asset code: <span className="font-mono font-semibold text-blue-600">{generateAssetCode(formData.assetnamefromcategory || formData.assetname) || 'XXX'}</span>
@@ -1619,6 +1620,7 @@ const handleFile = (file?: File) => {
                                 inventoryItems={inventoryItems}
                                 showAddButton={true}
                                 showDeleteButton={true}
+                                onCategoriesChange={refetchCategories}
                               />
                             </div>
                           )}
