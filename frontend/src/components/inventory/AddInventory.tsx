@@ -11,7 +11,7 @@ import { Save, X, Package, Calendar, DollarSign, MapPin, TrendingDown, CalendarI
 import { usePersistedFormState } from '../../hooks/usePersistedState';
 
 // import UploadDropzone from '../common/UploadDropzone';
-import { COMPANY_INFO, getValidInventoryDate } from '../../constants/companyInfo';
+import { COMPANY_INFO, getValidInventoryDate, getCurrentFinancialYear } from '../../constants/companyInfo';
 import DepreciationCalculator from '../common/DepreciationCalculator';
 import toast from 'react-hot-toast';
 import CategoryDropdown from '../common/CategoryDropdown';
@@ -79,10 +79,21 @@ const AddInventory: React.FC = () => {
     }
   };
 
+  // Get current financial year
+  const currentFY = getCurrentFinancialYear();
+  
+  // Get next financial year
+  const getNextFinancialYear = (fy: string): string => {
+    const [start, end] = fy.split('-');
+    const nextStart = parseInt(start) + 1;
+    const nextEnd = parseInt(end) + 1;
+    return `${nextStart}-${nextEnd.toString().slice(-2)}`;
+  };
+
   // Initialize form data with persistent state
   const defaultFormData = {
     uniqueid: '',
-    financialyear: '2024-25',
+    financialyear: currentFY,
     dateofinvoice: new Date(), // Default to current date
     dateofentry: new Date(),
     invoicenumber: '',
@@ -597,7 +608,7 @@ const handleFile = (file?: File) => {
     // 3. Reset form
     setFormData({
       uniqueid: '',
-      financialyear: '2024-25',
+      financialyear: currentFY,
       dateofinvoice: new Date(COMPANY_INFO.foundingYear, 0, 1),
       dateofentry: new Date(),
       invoicenumber: '',
@@ -742,69 +753,69 @@ const handleFile = (file?: File) => {
                 <span>Unique ID *</span>
                 <span className="px-2 py-1 ml-2 text-xs text-blue-800 bg-blue-100 rounded-full">Auto-Generated</span>
               </label>
-              <p className="mb-2 text-xs text-gray-500">
-                Sequential numbering: 001, 002, 003... (Total items: {inventoryItems.length + 1})
-              </p>
               <div className="relative">
-                <input
-                  type="text"
-                  name="uniqueid"
-                  value={formData.uniqueid}
-                  readOnly
-                  required
-                  className="w-full h-10 px-4 pr-10 border border-gray-300 rounded-lg cursor-not-allowed bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Will be generated automatically..."
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <Package className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-              {formData.uniqueid && (
-                <div className="p-2 mt-2 border border-blue-200 rounded-md bg-gradient-to-r from-[#0d559e]/10 to-[#1a6bb8]/10">
-                  <div className="mb-2 text-xs font-medium text-blue-600">🔄 Real-time ID Generation:</div>
-                  <div className="mt-1 space-y-1 text-xs text-gray-700">
-                    <div className="flex flex-wrap items-center gap-1">
-                      <span className="px-2 py-1 font-mono font-semibold text-blue-600 bg-white border border-gray-200 rounded">ihub</span>
-                      <span className="text-gray-400">/</span>
-                      <span className={`font-mono px-2 py-1 rounded border ${
+                <div className="relative w-full h-10 border border-gray-300 rounded-xl cursor-not-allowed bg-gray-50 flex items-center overflow-hidden">
+                  {/* Real-time ID Generation Display Inside Field */}
+                  <div 
+                    className="flex items-center gap-0.5 flex-1 min-w-0 px-3 overflow-x-auto"
+                    style={{ 
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none'
+                    } as React.CSSProperties}
+                  >
+                    <style>{`
+                      .unique-id-scroll::-webkit-scrollbar {
+                        display: none;
+                      }
+                    `}</style>
+                    <div className="flex items-center gap-0.5 flex-shrink-0 unique-id-scroll">
+                      <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">🔄</span>
+                      <span className="px-1 py-0.5 text-[10px] font-mono font-semibold text-blue-600 bg-white border border-gray-200 rounded whitespace-nowrap">ihub</span>
+                      <span className="text-[10px] text-gray-400 whitespace-nowrap">/</span>
+                      <span className={`text-[10px] font-mono px-1 py-0.5 rounded border whitespace-nowrap ${
                         formData.financialyear 
                           ? 'bg-green-100 border-green-300 text-green-700' 
                           : 'bg-red-100 border-red-300 text-red-500'
                       }`}>
                         {formData.financialyear || '--'}
                       </span>
-                      <span className="text-gray-400">/</span>
-                      <span className={`font-mono px-2 py-1 rounded border ${
+                      <span className="text-[10px] text-gray-400 whitespace-nowrap">/</span>
+                      <span className={`text-[10px] font-mono px-1 py-0.5 rounded border whitespace-nowrap ${
                         (formData.assetnamefromcategory || formData.assetname)
                           ? 'bg-green-100 border-green-300 text-green-700' 
                           : 'bg-red-100 border-red-300 text-red-500'
                       }`}>
                         {generateAssetCode(formData.assetnamefromcategory || formData.assetname) || '--'}
                       </span>
-                      <span className="text-gray-400">/</span>
-                      <span className={`font-mono px-2 py-1 rounded border ${
+                      <span className="text-[10px] text-gray-400 whitespace-nowrap">/</span>
+                      <span className={`text-[10px] font-mono px-1 py-0.5 rounded border whitespace-nowrap ${
                         formData.locationofitem 
                           ? 'bg-green-100 border-green-300 text-green-700' 
                           : 'bg-red-100 border-red-300 text-red-500'
                       }`}>
                         {formData.locationofitem || '--'}
                       </span>
-                      <span className="text-gray-400">/</span>
-                      <span className={`font-mono px-2 py-1 rounded border ${
+                      <span className="text-[10px] text-gray-400 whitespace-nowrap">/</span>
+                      <span className={`text-[10px] font-mono px-1 py-0.5 rounded border whitespace-nowrap ${
                         formData.financialyear && formData.assetname && formData.locationofitem
                           ? 'bg-green-100 border-green-300 text-green-700' 
                           : 'bg-red-100 border-red-300 text-red-500'
                       }`}>
-                        {formData.uniqueid.split('/').pop()}
+                        {formData.uniqueid.split('/').pop() || '001'}
                       </span>
                     </div>
                   </div>
-                  
-                  {/* Progress indicator */}
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none bg-gray-50 z-10">
+                    <Package className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+                
+                {/* Progress indicator below field */}
+                {formData.uniqueid && (
                   <div className="flex items-center mt-2 space-x-2">
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full">
+                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full">
                       <div 
-                        className="h-2 transition-all duration-300 rounded-full bg-gradient-to-r from-[#0d559e] to-[#1a6bb8]"
+                        className="h-1.5 transition-all duration-300 rounded-full bg-gradient-to-r from-[#0d559e] to-[#1a6bb8]"
                         style={{ 
                           width: `${[
                             formData.financialyear,
@@ -818,19 +829,19 @@ const handleFile = (file?: File) => {
                       {[formData.financialyear, formData.assetnamefromcategory || formData.assetname, formData.locationofitem].filter(Boolean).length + 1}/4 Complete
                     </span>
                   </div>
-                  
-                  {/* Missing fields reminder */}
-                  {(!formData.financialyear || !(formData.assetnamefromcategory || formData.assetname) || !formData.locationofitem) && (
-                    <div className="mt-2 text-xs text-amber-600">
-                      ⚠️ Missing: {[
-                        !formData.financialyear && 'Financial Year',
-                        !(formData.assetnamefromcategory || formData.assetname) && 'Asset Name',
-                        !formData.locationofitem && 'Location'
-                      ].filter(Boolean).join(', ')}
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
+                
+                {/* Missing fields reminder */}
+                {(!formData.financialyear || !(formData.assetnamefromcategory || formData.assetname) || !formData.locationofitem) && (
+                  <div className="mt-1 text-xs text-amber-600">
+                    ⚠️ Missing: {[
+                      !formData.financialyear && 'Financial Year',
+                      !(formData.assetnamefromcategory || formData.assetname) && 'Asset Name',
+                      !formData.locationofitem && 'Location'
+                    ].filter(Boolean).join(', ')}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
@@ -845,7 +856,7 @@ const handleFile = (file?: File) => {
                   onClick={() => setShowFinancialYearPicker(true)}
                   readOnly
                   required
-                  className="w-full h-10 px-4 pr-10 bg-white border border-gray-300 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 pr-10 bg-white border border-gray-300 rounded-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Select Financial Year"
                 />
                 <div 
@@ -879,10 +890,8 @@ const handleFile = (file?: File) => {
                         <div className="mb-2 text-xs text-gray-600">Or choose from recent years:</div>
                         <div className="grid grid-cols-2 gap-2">
                           {[
-                            '2024-25',
-                            '2025-26',
-                            '2026-27',
-                            '2027-28'
+                            currentFY,
+                            getNextFinancialYear(currentFY)
                           ].map(year => (
                             <button
                               key={year}
@@ -978,11 +987,6 @@ const handleFile = (file?: File) => {
                 <p className="mt-1 text-xs text-gray-500">
                   🔤 First 3 letters will be used as asset code: <span className="font-mono font-semibold text-blue-600">{generateAssetCode(formData.assetnamefromcategory || formData.assetname) || 'XXX'}</span>
                 </p>
-                {/* Debug info */}
-                <div className="mt-2 text-xs text-gray-400">
-                  Debug: Category Type: {formData.categorytype}, Asset Category: {formData.assetcategory}, 
-                  Filtered Categories: {filteredCategories.length}
-                </div>
               </div>
             )}
 
@@ -995,7 +999,7 @@ const handleFile = (file?: File) => {
                 name="makemodel"
                 value={formData.makemodel}
                 onChange={handleInputChange}
-                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., Dell Inspiron 15"
               />
             </div>
@@ -1009,7 +1013,7 @@ const handleFile = (file?: File) => {
                 name="productserialnumber"
                 value={formData.productserialnumber}
                 onChange={handleInputChange}
-                className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -1033,7 +1037,7 @@ const handleFile = (file?: File) => {
                   name="invoicenumber"
                   value={formData.invoicenumber}
                   onChange={handleInputChange}
-                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -1072,7 +1076,7 @@ const handleFile = (file?: File) => {
                   name="vendorname"
                   value={formData.vendorname}
                   onChange={handleInputChange}
-                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -1085,7 +1089,7 @@ const handleFile = (file?: File) => {
                   name="purchaseordernumber"
                   value={formData.purchaseordernumber}
                   onChange={handleInputChange}
-                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -1126,7 +1130,7 @@ const handleFile = (file?: File) => {
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
-                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 1500.00"
                 />
               </div>
@@ -1140,7 +1144,7 @@ const handleFile = (file?: File) => {
                   name="totalcost"
                   value={formData.totalcost}
                   readOnly
-                  className="w-full h-10 px-4 text-gray-600 border border-gray-300 rounded-lg bg-gray-50"
+                  className="w-full h-10 px-4 text-gray-600 border border-gray-300 rounded-xl bg-gray-50"
                   placeholder="Calculated automatically"
                 />
               </div>
@@ -1218,7 +1222,7 @@ const handleFile = (file?: File) => {
                   value={formData.minimumstocklevel}
                   onChange={handleInputChange}
                   min="0"
-                    className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 5"
                 />
               </div> */}
@@ -1234,7 +1238,7 @@ const handleFile = (file?: File) => {
                     value={formData.issuedto || ""}
                     onChange={handleInputChange}
                     required
-                    className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., Rohit Kumar"
                   />
                 </div>
@@ -1283,7 +1287,7 @@ const handleFile = (file?: File) => {
                   value={formData.specification}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                  className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
                   placeholder="Technical specifications..."
                 />
               </div>
@@ -1297,7 +1301,7 @@ const handleFile = (file?: File) => {
                   value={formData.description}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                  className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
                   placeholder="Purpose and description..."
                 />
               </div>
@@ -1313,7 +1317,7 @@ const handleFile = (file?: File) => {
                   name="warrantyinformation"
                   value={formData.warrantyinformation}
                   onChange={handleInputChange}
-                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 3 years"
                 />
               </div>
@@ -1343,7 +1347,7 @@ const handleFile = (file?: File) => {
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
-                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 5000.00"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -1390,7 +1394,7 @@ const handleFile = (file?: File) => {
                     onChange={handleInputChange}
                     min="1"
                     max="50"
-                    className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 5"
                   />
                 </div>
@@ -1462,7 +1466,7 @@ const handleFile = (file?: File) => {
                   onClick={() => {
                     setFormData({
                       uniqueid: '',
-                      financialyear: '2024-25',
+                      financialyear: currentFY,
                       dateofinvoice: new Date(COMPANY_INFO.foundingYear, 0, 1),
                       dateofentry: new Date(),
                       invoicenumber: '',
@@ -1663,7 +1667,7 @@ const handleFile = (file?: File) => {
                               const v = e.target.value;
                               setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, makemodel: v } : row));
                             }}
-                            className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="e.g., Dell Inspiron 15"
                           />
                         </div>
@@ -1677,7 +1681,7 @@ const handleFile = (file?: File) => {
                               const v = e.target.value;
                               setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, productserialnumber: v } : row));
                             }}
-                            className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="e.g., ABC123456"
                           />
                         </div>
@@ -1691,7 +1695,7 @@ const handleFile = (file?: File) => {
                               const v = e.target.value;
                               setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, vendorname: v } : row));
                             }}
-                            className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="e.g., Dell India"
                           />
                         </div>
@@ -1716,7 +1720,7 @@ const handleFile = (file?: File) => {
                                 const quantity = it.quantity || 1;
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, rateinclusivetax: rate, totalcost: rate * quantity } : row));
                               }}
-                              className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="e.g., 1500.00"
                               required
                             />
@@ -1754,7 +1758,7 @@ const handleFile = (file?: File) => {
                                 const v = e.target.value;
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, expectedlifespan: v } : row));
                               }}
-                              className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="e.g., 5"
                             />
                           </div>
@@ -1770,7 +1774,7 @@ const handleFile = (file?: File) => {
                                 const v = parseFloat(e.target.value || '0');
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, salvagevalue: v } : row));
                               }}
-                              className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="e.g., 1000.00"
                             />
                           </div>
@@ -1885,7 +1889,7 @@ const handleFile = (file?: File) => {
                           max={100}
                           value={rowsToAdd}
                           onChange={(e) => setRowsToAdd(e.target.value.replace(/[^0-9]/g, ''))}
-                          className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="e.g., 4"
                         />
                         <p className="mt-1 text-xs text-gray-500">Adds this many new rows using the last row as a template.</p>
