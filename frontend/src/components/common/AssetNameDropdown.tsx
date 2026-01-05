@@ -151,8 +151,56 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [opensUpward, setOpensUpward] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Calculate dropdown position based on available space
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const calculatePosition = () => {
+        if (!dropdownRef.current) return;
+        
+        const triggerRect = dropdownRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate available space below and above
+        const spaceBelow = viewportHeight - triggerRect.bottom;
+        const spaceAbove = triggerRect.top;
+        
+        // Default max height for dropdown menu (max-h-80 = 320px)
+        // Add some padding for better UX (20px margin)
+        const maxMenuHeight = 320;
+        const requiredSpace = maxMenuHeight + 20;
+        
+        // If not enough space below but more space above, open upward
+        if (spaceBelow < requiredSpace && spaceAbove > spaceBelow) {
+          setOpensUpward(true);
+        } else {
+          setOpensUpward(false);
+        }
+      };
+
+      // Calculate immediately
+      calculatePosition();
+
+      // Recalculate on scroll and resize
+      const handlePositionUpdate = () => {
+        if (isOpen) {
+          calculatePosition();
+        }
+      };
+
+      window.addEventListener('scroll', handlePositionUpdate, true);
+      window.addEventListener('resize', handlePositionUpdate);
+
+      return () => {
+        window.removeEventListener('scroll', handlePositionUpdate, true);
+        window.removeEventListener('resize', handlePositionUpdate);
+      };
+    }
+  }, [isOpen, assetNames.length, searchTerm]); // Recalculate when dropdown opens or options change
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -162,9 +210,13 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
       }
     };
 
+    // Close dropdown when clicking outside
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && searchable && searchInputRef.current) {
@@ -189,9 +241,10 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
   };
 
   const handleDeleteClick = (e: React.MouseEvent, assetName: string) => {
-    e.stopPropagation(); // Prevent dropdown from closing
+    e.stopPropagation(); // Prevent dropdown from closing immediately
     const isUsed = isAssetNameUsed(assetName);
     if (!isUsed) {
+      setIsOpen(false); // Close dropdown when opening delete modal
       setAssetNameToDelete(assetName);
     }
   };
@@ -249,7 +302,14 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
 
         {/* Dropdown Menu */}
         {isOpen && (
-          <div className="absolute z-[60] w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+          <div 
+            ref={dropdownMenuRef}
+            className={`absolute z-[60] w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ${
+              opensUpward 
+                ? 'bottom-full mb-2' 
+                : 'top-full mt-2'
+            }`}
+          >
             {/* Add Button at Top */}
             {showAddButton && categoryType && assetCategory && selectedCategory && (
               <div className="p-2 border-b border-gray-100">
@@ -354,7 +414,7 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
 
       {/* Add Asset Name Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md p-6 mx-4 bg-white rounded-xl shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Add New Asset Name</h3>
@@ -432,7 +492,7 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
 
       {/* Delete Confirmation Modal */}
       {assetNameToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md p-6 mx-4 bg-white rounded-xl shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Delete Asset Name</h3>
