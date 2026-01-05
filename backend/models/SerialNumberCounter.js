@@ -15,7 +15,21 @@ const serialNumberCounterSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Static method to get and increment the counter atomically
+/**
+ * Get and increment the global serial number counter atomically
+ * 
+ * This method automatically increments the serial number for each new asset.
+ * The serial number reflects the total asset count and increments sequentially:
+ * - First asset: 001
+ * - Second asset: 002
+ * - Third asset: 003
+ * - And so on...
+ * 
+ * The counter is atomic and thread-safe, ensuring no duplicates even under
+ * concurrent asset creation requests.
+ * 
+ * @returns {Promise<number>} The next sequential serial number
+ */
 serialNumberCounterSchema.statics.getNextSequence = async function() {
   const counter = await this.findByIdAndUpdate(
     'global',

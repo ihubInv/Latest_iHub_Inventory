@@ -42,8 +42,10 @@ const inventoryItemSchema = new mongoose.Schema({
   },
   productserialnumber: {
     type: String,
-    trim: true
-    // unique and sparse index defined below
+    trim: true,
+    default: undefined
+    // NOT unique - multiple items can have the same product serial number
+    // NOT required - this field is optional
   },
   vendorname: {
     type: String,
