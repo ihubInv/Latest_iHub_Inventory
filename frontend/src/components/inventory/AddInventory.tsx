@@ -1165,10 +1165,9 @@ const handleFile = (file?: File) => {
                   required
                   placeholder="Storage Room A"
                   searchable
-                  disabled
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  📍 Used as-is in unique ID (Default: Storage Room A)
+                  📍 Select location - will be used in unique ID generation
                 </p>
               </div>
 

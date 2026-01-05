@@ -2,7 +2,7 @@ import React from 'react';
 import { MapPin, Building } from 'lucide-react';
 import AttractiveDropdown from './AttractiveDropdown';
 import type { InventoryItem } from '../../types';
-import { useGetLocationsQuery } from '../../store/api';
+import { useGetActiveLocationsQuery } from '../../store/api';
 
 interface LocationDropdownProps {
   inventoryItems: InventoryItem[];
@@ -26,26 +26,25 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({
   searchable = true,
   ...props
 }) => {
-  const { data: locationsResponse } = useGetLocationsQuery({});
-  const locations = locationsResponse?.data || [];
+  // Use getActiveLocations to get all active locations without pagination
+  const { data: activeLocationsResponse, isLoading } = useGetActiveLocationsQuery();
+  const activeLocations = activeLocationsResponse?.data || [];
   
-  // Get all active locations from database
-  const activeLocations = locations?.filter((location: any) => location.isactive);
-  
-  // Always include "Storage Room A" as a protected default location
+  // Always include "Storage Room A" as a protected default location if it doesn't exist
+  const hasStorageRoomA = activeLocations.some((loc: any) => loc.name === 'Storage Room A');
   const protectedLocation = {
     id: 'protected-storage-room-a',
     name: 'Storage Room A',
+    isActive: true,
     isactive: true,
     createdat: new Date().toISOString(),
     updatedat: new Date().toISOString()
   };
   
   // Combine protected location with database locations, ensuring no duplicates
-  const allLocations = [
-    protectedLocation,
-    ...activeLocations.filter((location: any) => location.name !== 'Storage Room A')
-  ];
+  const allLocations = hasStorageRoomA 
+    ? activeLocations 
+    : [protectedLocation, ...activeLocations];
   
   // Create location options with inventory data
   const options = allLocations.map((location: any) => {
