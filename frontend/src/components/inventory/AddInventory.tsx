@@ -752,7 +752,7 @@ const handleFile = (file?: File) => {
                   value={formData.uniqueid}
                   readOnly
                   required
-                  className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg cursor-not-allowed bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 pr-10 border border-gray-300 rounded-lg cursor-not-allowed bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Will be generated automatically..."
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -845,7 +845,7 @@ const handleFile = (file?: File) => {
                   onClick={() => setShowFinancialYearPicker(true)}
                   readOnly
                   required
-                  className="w-full px-4 py-2 pr-10 bg-white border border-gray-300 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 pr-10 bg-white border border-gray-300 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Select Financial Year"
                 />
                 <div 
@@ -995,8 +995,8 @@ const handleFile = (file?: File) => {
                 name="makemodel"
                 value={formData.makemodel}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Dell Inspiron 15"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Dell Inspiron 15"
               />
             </div>
 
@@ -1009,7 +1009,7 @@ const handleFile = (file?: File) => {
                 name="productserialnumber"
                 value={formData.productserialnumber}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -1033,7 +1033,7 @@ const handleFile = (file?: File) => {
                   name="invoicenumber"
                   value={formData.invoicenumber}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -1072,7 +1072,7 @@ const handleFile = (file?: File) => {
                   name="vendorname"
                   value={formData.vendorname}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -1085,7 +1085,7 @@ const handleFile = (file?: File) => {
                   name="purchaseordernumber"
                   value={formData.purchaseordernumber}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -1126,7 +1126,7 @@ const handleFile = (file?: File) => {
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 1500.00"
                 />
               </div>
@@ -1140,7 +1140,7 @@ const handleFile = (file?: File) => {
                   name="totalcost"
                   value={formData.totalcost}
                   readOnly
-                  className="w-full px-4 py-2 text-gray-600 border border-gray-300 rounded-lg bg-gray-50"
+                  className="w-full h-10 px-4 text-gray-600 border border-gray-300 rounded-lg bg-gray-50"
                   placeholder="Calculated automatically"
                 />
               </div>
@@ -1218,8 +1218,8 @@ const handleFile = (file?: File) => {
                   value={formData.minimumstocklevel}
                   onChange={handleInputChange}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., 5"
+                    className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., 5"
                 />
               </div> */}
 
@@ -1234,7 +1234,7 @@ const handleFile = (file?: File) => {
                     value={formData.issuedto || ""}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., Rohit Kumar"
                   />
                 </div>
@@ -1283,7 +1283,7 @@ const handleFile = (file?: File) => {
                   value={formData.specification}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
                   placeholder="Technical specifications..."
                 />
               </div>
@@ -1297,13 +1297,13 @@ const handleFile = (file?: File) => {
                   value={formData.description}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
                   placeholder="Purpose and description..."
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 mt-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
+            <div className="grid grid-cols-1 gap-6 mt-6 sm:grid-cols-2 lg:grid-cols-3">
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-700">
                   Warranty Information
@@ -1313,7 +1313,7 @@ const handleFile = (file?: File) => {
                   name="warrantyinformation"
                   value={formData.warrantyinformation}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 3 years"
                 />
               </div>
@@ -1343,7 +1343,7 @@ const handleFile = (file?: File) => {
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 5000.00"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -1362,7 +1362,7 @@ const handleFile = (file?: File) => {
                 <h3 className="text-lg font-semibold text-gray-900">Depreciation Information</h3>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                   <DepreciationMethodDropdown
                     label="Depreciation Method"
@@ -1390,7 +1390,7 @@ const handleFile = (file?: File) => {
                     onChange={handleInputChange}
                     min="1"
                     max="50"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 5"
                   />
                 </div>
@@ -1628,9 +1628,9 @@ const handleFile = (file?: File) => {
                       </div>
 
                       {/* Basic Information */}
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                         <div>
-                          <label className="flex items-center mb-1 text-sm font-medium text-gray-700">
+                          <label className="flex items-center mb-2 text-sm font-medium text-gray-700">
                             <span>Unique ID *</span>
                             <span className="px-2 py-1 ml-2 text-xs text-blue-800 bg-blue-100 rounded-full">Auto-Generated</span>
                           </label>
@@ -1640,7 +1640,7 @@ const handleFile = (file?: File) => {
                               value={it.uniqueid}
                               readOnly
                               required
-                              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg cursor-not-allowed bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-10 px-4 pr-10 border border-gray-300 rounded-lg cursor-not-allowed bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="Will be generated automatically..."
                             />
                             <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -1655,7 +1655,7 @@ const handleFile = (file?: File) => {
                         </div>
 
                         <div>
-                          <label className="block mb-1 text-sm font-medium text-gray-700">Make/Model</label>
+                          <label className="block mb-2 text-sm font-medium text-gray-700">Make/Model</label>
                           <input
                             type="text"
                             value={it.makemodel}
@@ -1663,13 +1663,13 @@ const handleFile = (file?: File) => {
                               const v = e.target.value;
                               setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, makemodel: v } : row));
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="e.g., Dell Inspiron 15"
                           />
                         </div>
 
                         <div>
-                          <label className="block mb-1 text-sm font-medium text-gray-700">Serial Number</label>
+                          <label className="block mb-2 text-sm font-medium text-gray-700">Serial Number</label>
                           <input
                             type="text"
                             value={it.productserialnumber}
@@ -1677,13 +1677,13 @@ const handleFile = (file?: File) => {
                               const v = e.target.value;
                               setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, productserialnumber: v } : row));
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="e.g., ABC123456"
                           />
                         </div>
 
                         <div>
-                          <label className="block mb-1 text-sm font-medium text-gray-700">Vendor Name</label>
+                          <label className="block mb-2 text-sm font-medium text-gray-700">Vendor Name</label>
                           <input
                             type="text"
                             value={it.vendorname}
@@ -1691,7 +1691,7 @@ const handleFile = (file?: File) => {
                               const v = e.target.value;
                               setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, vendorname: v } : row));
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="e.g., Dell India"
                           />
                         </div>
@@ -1703,9 +1703,9 @@ const handleFile = (file?: File) => {
                           <DollarSign className="w-4 h-4 text-gray-600" />
                           <h4 className="text-sm font-semibold text-gray-700">Financial Details</h4>
                         </div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                           <div>
-                            <label className="block mb-1 text-sm font-medium text-gray-700">Rate (Incl. Tax) *</label>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">Rate (Incl. Tax) *</label>
                             <input
                               type="number"
                               min="0"
@@ -1716,7 +1716,7 @@ const handleFile = (file?: File) => {
                                 const quantity = it.quantity || 1;
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, rateinclusivetax: rate, totalcost: rate * quantity } : row));
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="e.g., 1500.00"
                               required
                             />
@@ -1725,12 +1725,12 @@ const handleFile = (file?: File) => {
                        
 
                           <div>
-                            <label className="block mb-1 text-sm font-medium text-gray-700">Total Cost</label>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">Total Cost</label>
                             <input
                               type="number"
                               value={it.totalcost}
                               readOnly
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                              className="w-full h-10 px-4 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
                             />
                           </div>
                         </div>
@@ -1742,9 +1742,9 @@ const handleFile = (file?: File) => {
                           <Package className="w-4 h-4 text-gray-600" />
                           <h4 className="text-sm font-semibold text-gray-700">Additional Details</h4>
                         </div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                           <div>
-                            <label className="block mb-1 text-sm font-medium text-gray-700">Expected Lifespan (Years)</label>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">Expected Lifespan (Years)</label>
                             <input
                               type="number"
                               min="1"
@@ -1754,13 +1754,13 @@ const handleFile = (file?: File) => {
                                 const v = e.target.value;
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, expectedlifespan: v } : row));
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="e.g., 5"
                             />
                           </div>
 
                           <div>
-                            <label className="block mb-1 text-sm font-medium text-gray-700">Salvage Value (₹)</label>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">Salvage Value (₹)</label>
                             <input
                               type="number"
                               min="0"
@@ -1770,7 +1770,7 @@ const handleFile = (file?: File) => {
                                 const v = parseFloat(e.target.value || '0');
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, salvagevalue: v } : row));
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="e.g., 1000.00"
                             />
                           </div>
@@ -1878,14 +1878,14 @@ const handleFile = (file?: File) => {
                     </div>
                     <div className="space-y-4">
                       <div>
-                        <label className="block mb-1 text-sm font-medium text-gray-700">How many rows to add?</label>
+                        <label className="block mb-2 text-sm font-medium text-gray-700">How many rows to add?</label>
                         <input
                           type="number"
                           min={1}
                           max={100}
                           value={rowsToAdd}
                           onChange={(e) => setRowsToAdd(e.target.value.replace(/[^0-9]/g, ''))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full h-10 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="e.g., 4"
                         />
                         <p className="mt-1 text-xs text-gray-500">Adds this many new rows using the last row as a template.</p>
