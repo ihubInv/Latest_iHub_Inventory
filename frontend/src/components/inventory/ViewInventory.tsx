@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Edit, Package } from 'lucide-react';
+import { X, Package, Calendar, DollarSign, FileText, TrendingDown } from 'lucide-react';
 
 interface ViewInventoryProps {
   item: any;
@@ -35,11 +35,26 @@ const ViewInventory: React.FC<ViewInventoryProps> = ({ item, onClose }) => {
 
   // Helper function to extract string values from objects
   const getDisplayValue = (value: any): string => {
-    if (!value) return '—';
+    if (!value && value !== 0) return '—';
     if (typeof value === 'object') {
       return value?.name || value?.id || value?.assetname || String(value);
     }
     return String(value);
+  };
+
+  // Extract serial number from unique ID
+  const extractSerialNumberFromUniqueId = (uniqueId: string): string => {
+    if (!uniqueId) return '—';
+    const parts = uniqueId.split('/');
+    return parts.length > 0 ? parts[parts.length - 1] : '—';
+  };
+
+  // Format currency
+  const formatCurrency = (value: any): string => {
+    if (!value && value !== 0) return '—';
+    const numValue = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(numValue)) return '—';
+    return `₹${numValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -72,183 +87,289 @@ const ViewInventory: React.FC<ViewInventoryProps> = ({ item, onClose }) => {
             {/* Basic Information Section */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
               <div className="flex items-center space-x-2 mb-6">
-                <Package className="w-6 h-6 text-[#0d559e]" />
-                <h3 className="text-xl font-semibold text-gray-900">Basic Information</h3>
+                <Package className="w-5 h-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Asset Name</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {getDisplayValue(item.assetname)}
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">Unique ID</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 font-mono">
                     {getDisplayValue(item.uniqueid)}
                   </div>
                 </div>
+
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Category</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Financial Year</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.financialyear)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Asset Type</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue((item as any).categorytype) || '—'}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Asset Category</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
                     {getDisplayValue(item.assetcategory)}
                   </div>
                 </div>
+
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Subcategory</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {getDisplayValue(item.subcategory)}
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Asset Name</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.assetname)}
                   </div>
                 </div>
+
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Asset Category ID</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {getDisplayValue(item.assetcategoryid)}
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Location</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.locationofitem || item.location)}
                   </div>
                 </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Brand/Model</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {getDisplayValue(item.brand)}
-                  </div>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Serial Number</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {getDisplayValue(item.serialnumber)}
-                  </div>
-                </div>
-            
+
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">Status</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg">
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       {getDisplayValue(item.status)}
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Financial Information Section */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="w-6 h-6 text-[#0d559e] bg-green-100 rounded-lg flex items-center justify-center">
-                  <span className="text-green-600 font-bold text-sm">$</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Financial Information</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Purchase Price</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {item.purchaseprice ? `$${item.purchaseprice}` : '—'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Current Value</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {item.currentvalue ? `$${item.currentvalue}` : '—'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Purchase Date</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {formatDate(item.purchasedate)}
-                  </div>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Date of Invoice</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {formatDate(item.dateofinvoice)}
-                  </div>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Vendor</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {getDisplayValue(item.vendor)}
-                  </div>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Date of Entry</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {formatDate(item.dateofentry)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Location & Assignment Section */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="w-6 h-6 text-[#0d559e] bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="text-blue-600 font-bold text-sm">📍</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Location & Assignment</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Location</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {getDisplayValue(item.location)}
-                  </div>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Department</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {getDisplayValue(item.department)}
-                  </div>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Assigned To</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {getDisplayValue(item.assignedto)}
-                  </div>
-                </div>
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">Condition</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg">
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {getDisplayValue(item.condition)}
+                      {getDisplayValue(item.conditionofasset || item.condition)}
                     </span>
                   </div>
                 </div>
+
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Warranty Expiry</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                    {formatDate(item.warrantyexpiry)}
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Rate (Inclusive Tax)</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {formatCurrency(item.rateinclusivetax)}
                   </div>
                 </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Total Cost</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {formatCurrency(item.totalcost)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Unit of Measurement</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.unitofmeasurement)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Details Section */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <FileText className="w-5 h-5 text-purple-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Additional Details</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Make/Model</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.makemodel)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center mb-2 text-sm font-medium text-gray-700">
+                    <span>Serial Number</span>
+                    <span className="px-2 py-1 ml-2 text-xs text-blue-800 bg-blue-100 rounded-full">Auto-Generated</span>
+                  </label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 font-mono font-semibold">
+                    {extractSerialNumberFromUniqueId(item.uniqueid)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Product Serial Number <span className="text-gray-400 font-normal">(Optional)</span>
+                  </label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.productserialnumber)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Vendor Name</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.vendorname)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Invoice Number</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.invoicenumber)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Purchase Order Number</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.purchaseordernumber)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Specification</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 min-h-[80px]">
+                    {getDisplayValue(item.specification)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Balance Quantity in Stock</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.balancequantityinstock)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Minimum Stock Level</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.minimumstocklevel)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Warranty Information</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.warrantyinformation)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Annual Management Charge (AMS) (₹)</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {formatCurrency(item.annualmanagementcharge)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Financial & Maintenance Section */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Financial & Maintenance</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Maintenance Schedule</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 min-h-[80px]">
+                    {getDisplayValue(item.maintenanceschedule)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Depreciation Section */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <TrendingDown className="w-5 h-5 text-purple-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Depreciation Information</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Depreciation Method</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.depreciationmethod)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Useful Life (Years)</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {getDisplayValue(item.expectedlifespan)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Salvage Value (₹)</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {formatCurrency((item as any).salvagevalue)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Issuance & Dates Section */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <Calendar className="w-5 h-5 text-orange-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Issuance & Dates</h3>
+              </div>
+              
+              {/* Conditional fields for issued status */}
+              {item.status === 'issued' && (
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-6">
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Issued To</label>
+                    <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                      {getDisplayValue(item.issuedto)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Expected Return Date</label>
+                    <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                      {formatDate(item.expectedreturndate)}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Dates Grid */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Date of Invoice</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {formatDate(item.dateofinvoice)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Date of Entry</label>
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
+                    {formatDate(item.dateofentry)}
+                  </div>
+                </div>
+
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">Date of Issue</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
+                  <div className="px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-900">
                     {formatDate(item.dateofissue)}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Specifications Section */}
+            {/* Description Section */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
               <div className="flex items-center space-x-2 mb-6">
-                <div className="w-6 h-6 text-[#0d559e] bg-purple-100 rounded-lg flex items-center justify-center">
-                  <span className="text-purple-600 font-bold text-sm">⚙</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Specifications & Additional Info</h3>
+                <FileText className="w-5 h-5 text-gray-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Description/Purpose</h3>
               </div>
-              <div className="space-y-6">
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Description</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 min-h-[100px]">
-                    {getDisplayValue(item.description)}
-                  </div>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Notes</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 min-h-[80px]">
-                    {getDisplayValue(item.notes)}
-                  </div>
-                </div>
+              <div className="px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 min-h-[100px]">
+                {getDisplayValue(item.description)}
               </div>
             </div>
 
