@@ -94,11 +94,11 @@ const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
   const getSizeClasses = () => {
     switch (size) {
       case 'sm':
-        return 'h-9 px-3 text-sm';
+        return 'h-10 px-3 text-sm';
       case 'lg':
-        return 'h-11 px-4 text-base';
+        return 'h-12 px-4 text-base';
       default:
-        return 'h-10 px-4 text-sm';
+        return 'h-11 px-4 text-sm';
     }
   };
 

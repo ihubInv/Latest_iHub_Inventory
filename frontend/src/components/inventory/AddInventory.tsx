@@ -862,7 +862,7 @@ const handleFile = (file?: File) => {
                 <span className="px-2 py-1 ml-2 text-xs text-blue-800 bg-blue-100 rounded-full">Auto-Generated</span>
               </label>
               <div className="relative">
-                <div className="relative w-full h-10 border border-gray-300 rounded-xl cursor-not-allowed bg-gray-50 flex items-center overflow-hidden">
+                <div className="relative w-full h-11 border border-gray-300 rounded-xl cursor-not-allowed bg-gray-50 flex items-center overflow-hidden">
                   {/* Real-time ID Generation Display Inside Field */}
                   <div 
                     className="flex items-center gap-0.5 flex-1 min-w-0 px-3 overflow-x-auto"
@@ -1041,7 +1041,7 @@ const handleFile = (file?: File) => {
                 name="makemodel"
                 value={formData.makemodel}
                 onChange={handleInputChange}
-                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., Dell Inspiron 15"
               />
             </div>
@@ -1058,7 +1058,7 @@ const handleFile = (file?: File) => {
                 value={extractSerialNumberFromUniqueId(formData.uniqueid)}
                 readOnly
                 disabled
-                className="w-full h-10 px-4 border border-gray-300 rounded-xl bg-gray-50 cursor-not-allowed text-gray-700 font-mono font-semibold"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl bg-gray-50 cursor-not-allowed text-gray-700 font-mono font-semibold"
                 placeholder="Will be generated from Unique ID"
               />
               <p className="mt-1 text-xs text-gray-500">
@@ -1076,7 +1076,7 @@ const handleFile = (file?: File) => {
                 name="productserialnumber"
                 value={formData.productserialnumber}
                 onChange={handleInputChange}
-                className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Manufacturer's serial number (if available)"
               />
               <p className="mt-1 text-xs text-gray-500">
@@ -1104,7 +1104,7 @@ const handleFile = (file?: File) => {
                   name="invoicenumber"
                   value={formData.invoicenumber}
                   onChange={handleInputChange}
-                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -1143,7 +1143,7 @@ const handleFile = (file?: File) => {
                   name="vendorname"
                   value={formData.vendorname}
                   onChange={handleInputChange}
-                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -1156,7 +1156,7 @@ const handleFile = (file?: File) => {
                   name="purchaseordernumber"
                   value={formData.purchaseordernumber}
                   onChange={handleInputChange}
-                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -1197,7 +1197,7 @@ const handleFile = (file?: File) => {
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
-                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 1500.00"
                 />
               </div>
@@ -1211,7 +1211,7 @@ const handleFile = (file?: File) => {
                   name="totalcost"
                   value={formData.totalcost}
                   readOnly
-                  className="w-full h-10 px-4 text-gray-600 border border-gray-300 rounded-xl bg-gray-50"
+                  className="w-full h-11 px-4 text-gray-600 border border-gray-300 rounded-xl bg-gray-50"
                   placeholder="Calculated automatically"
                 />
               </div>
@@ -1289,7 +1289,7 @@ const handleFile = (file?: File) => {
                   value={formData.minimumstocklevel}
                   onChange={handleInputChange}
                   min="0"
-                    className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 5"
                 />
               </div> */}
@@ -1305,7 +1305,7 @@ const handleFile = (file?: File) => {
                     value={formData.issuedto || ""}
                     onChange={handleInputChange}
                     required
-                    className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., Rohit Kumar"
                   />
                 </div>
@@ -1384,7 +1384,7 @@ const handleFile = (file?: File) => {
                   name="warrantyinformation"
                   value={formData.warrantyinformation}
                   onChange={handleInputChange}
-                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 3 years"
                 />
               </div>
@@ -1414,7 +1414,7 @@ const handleFile = (file?: File) => {
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
-                  className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 5000.00"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -1461,7 +1461,7 @@ const handleFile = (file?: File) => {
                     onChange={handleInputChange}
                     min="1"
                     max="50"
-                    className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 5"
                   />
                 </div>
@@ -1712,7 +1712,7 @@ const handleFile = (file?: File) => {
                               value={it.uniqueid}
                               readOnly
                               required
-                              className="w-full h-10 px-4 pr-10 border border-gray-300 rounded-lg cursor-not-allowed bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-11 px-4 pr-10 border border-gray-300 rounded-lg cursor-not-allowed bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="Will be generated automatically..."
                             />
                             <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -1735,7 +1735,7 @@ const handleFile = (file?: File) => {
                               const v = e.target.value;
                               setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, makemodel: v } : row));
                             }}
-                            className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="e.g., Dell Inspiron 15"
                           />
                         </div>
@@ -1751,7 +1751,7 @@ const handleFile = (file?: File) => {
                             value={extractSerialNumberFromUniqueId(it.uniqueid)}
                             readOnly
                             disabled
-                            className="w-full h-10 px-4 border border-gray-300 rounded-xl bg-gray-50 cursor-not-allowed text-gray-700 font-mono font-semibold"
+                            className="w-full h-11 px-4 border border-gray-300 rounded-xl bg-gray-50 cursor-not-allowed text-gray-700 font-mono font-semibold"
                             placeholder="Will be generated from Unique ID"
                           />
                         </div>
@@ -1768,7 +1768,7 @@ const handleFile = (file?: File) => {
                               const v = e.target.value;
                               setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, productserialnumber: v } : row));
                             }}
-                            className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Manufacturer's serial number (if available)"
                           />
                         </div>
@@ -1782,7 +1782,7 @@ const handleFile = (file?: File) => {
                               const v = e.target.value;
                               setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, vendorname: v } : row));
                             }}
-                            className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="e.g., Dell India"
                           />
                         </div>
@@ -1807,7 +1807,7 @@ const handleFile = (file?: File) => {
                                 const quantity = it.quantity || 1;
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, rateinclusivetax: rate, totalcost: rate * quantity } : row));
                               }}
-                              className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="e.g., 1500.00"
                               required
                             />
@@ -1845,7 +1845,7 @@ const handleFile = (file?: File) => {
                                 const v = e.target.value;
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, expectedlifespan: v } : row));
                               }}
-                              className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="e.g., 5"
                             />
                           </div>
@@ -1861,7 +1861,7 @@ const handleFile = (file?: File) => {
                                 const v = parseFloat(e.target.value || '0');
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, salvagevalue: v } : row));
                               }}
-                              className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="e.g., 1000.00"
                             />
                           </div>
@@ -2039,7 +2039,7 @@ const handleFile = (file?: File) => {
                           max={100}
                           value={rowsToAdd}
                           onChange={(e) => setRowsToAdd(e.target.value.replace(/[^0-9]/g, ''))}
-                          className="w-full h-10 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="e.g., 4"
                         />
                         <p className="mt-1 text-xs text-gray-500">Adds this many new rows using the last row as a template.</p>

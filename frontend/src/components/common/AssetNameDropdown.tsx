@@ -282,7 +282,7 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
           onClick={() => !props.disabled && setIsOpen(!isOpen)}
           disabled={props.disabled || !categoryType || !assetCategory}
           className={`
-            w-full h-10 text-left rounded-xl shadow-sm transition-all duration-200
+            w-full h-11 text-left rounded-xl shadow-sm transition-all duration-200
             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
             px-4 text-sm sm:text-base
             border border-gray-300 bg-white
