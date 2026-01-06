@@ -7,19 +7,22 @@ import {
   useGetUsersQuery
 } from '../../store/api';
 import { useAppSelector } from '../../store/hooks';
-import { Save, X, Package, Calendar, DollarSign, MapPin, Image, Upload, Trash2, FileText } from 'lucide-react';
+import { Save, X, Package, Calendar, DollarSign, Trash2, FileText, TrendingDown } from 'lucide-react';
 import type { InventoryItem } from '../../types';
 import { CRUDToasts } from '../../services/toastService';
 import toast from 'react-hot-toast';
 import CustomDatePicker from '../common/DatePicker';
 import CategoryDropdown from '../common/CategoryDropdown';
+import CategoryTypeDropdown from '../common/CategoryTypeDropdown';
+import AssetNameDropdown from '../common/AssetNameDropdown';
+import FinancialYearDropdown from '../common/FinancialYearDropdown';
 import StatusDropdown from '../common/StatusDropdown';
 import ConditionDropdown from '../common/ConditionDropdown';
-import UserDropdown from '../common/UserDropdown';
 import UnitDropdown from '../common/UnitDropdown';
-import DepartmentDropdown from '../common/DepartmentDropdown';
 import DepreciationMethodDropdown from '../common/DepreciationMethodDropdown';
 import LocationDropdown from '../common/LocationDropdown';
+import DepreciationCalculator from '../common/DepreciationCalculator';
+import { getValidInventoryDate } from '../../constants/companyInfo';
 
 interface UpdateInventoryProps {
   item: InventoryItem | null;
@@ -35,7 +38,7 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
   onUpdate
 }) => {
   const { user } = useAppSelector((state) => state.auth);
-  const { data: categoriesResponse } = useGetCategoriesQuery({});
+  const { data: categoriesResponse, refetch: refetchCategories } = useGetCategoriesQuery({});
   const categories = categoriesResponse?.data || [];
   const { data: inventoryResponse } = useGetInventoryItemsQuery({});
   const inventoryItems = inventoryResponse?.data || [];
@@ -44,30 +47,64 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
   const [updateInventoryItem] = useUpdateInventoryItemMutation();
   const [deleteInventoryItem] = useDeleteInventoryItemMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<Partial<InventoryItem>>({});
-  const [newAttachments, setNewAttachments] = useState<File[]>([]);
-  const [removedAttachments, setRemovedAttachments] = useState<string[]>([]);
+  const [formData, setFormData] = useState<Partial<InventoryItem & { categorytype?: string; assetnamefromcategory?: string }>>({});
+
+  // Extract category type from category if available
+  const getCategoryType = (item: InventoryItem): string => {
+    if ((item as any).categorytype) return (item as any).categorytype;
+    // Try to find category type from categories list
+    const matchedCategory = categories.find((cat: any) => 
+      cat.name === item.assetcategory || cat.id === item.assetcategoryid
+    );
+    return matchedCategory?.type || '';
+  };
+
+  // Extract serial number from unique ID
+  const extractSerialNumberFromUniqueId = (uniqueId: string): string => {
+    if (!uniqueId) return '';
+    const parts = uniqueId.split('/');
+    return parts.length > 0 ? parts[parts.length - 1] : '';
+  };
+
+  // Update unique ID when location changes
+  // Format: IHUB/YEAR/ASSETCODE/LOCATION/SERIAL
+  const updateUniqueIdWithNewLocation = (currentUniqueId: string, newLocation: string): string => {
+    if (!currentUniqueId || !newLocation) return currentUniqueId;
+    
+    // Normalize to uppercase for consistency
+    const normalizedId = currentUniqueId.toUpperCase();
+    const parts = normalizedId.split('/');
+    
+    // Validate format: should have 5 parts (IHUB/YEAR/ASSETCODE/LOCATION/SERIAL)
+    if (parts.length !== 5) {
+      console.warn('Invalid unique ID format:', currentUniqueId);
+      return currentUniqueId;
+    }
+    
+    // Update location (index 3) while keeping everything else
+    parts[3] = newLocation.toUpperCase().trim();
+    
+    return parts.join('/');
+  };
 
   useEffect(() => {
     if (item) {
+      const categoryType = getCategoryType(item);
+      const assetNameFromCategory = item.assetname || '';
+      
       setFormData({
         ...item,
+        categorytype: categoryType,
+        assetnamefromcategory: assetNameFromCategory,
         dateofinvoice: item.dateofinvoice ? new Date(item.dateofinvoice) : undefined,
         dateofentry: item.dateofentry ? new Date(item.dateofentry) : undefined,
         dateofissue: item.dateofissue ? new Date(item.dateofissue) : undefined,
         expectedreturndate: item.expectedreturndate ? new Date(item.expectedreturndate) : undefined,
-        assetcategoryid: typeof item.assetcategoryid === 'object' ? item.assetcategoryid?.id || item.assetcategoryid?.name || '' : item.assetcategoryid || '',
-        assetcategory: typeof item.assetcategory === 'object' ? item.assetcategory?.name || item.assetcategory?.id || '' : item.assetcategory || '',
-        subcategory: typeof item.subcategory === 'object' ? item.subcategory?.name || item.subcategory?.id || '' : item.subcategory || '',
-        vendor: typeof item.vendor === 'object' ? item.vendor?.name || item.vendor?.id || '' : item.vendor || '',
-        location: typeof item.location === 'object' ? item.location?.name || item.location?.id || '' : item.location || '',
-        department: typeof item.department === 'object' ? item.department?.name || item.department?.id || '' : item.department || '',
-        assignedto: typeof item.assignedto === 'object' ? item.assignedto?.name || item.assignedto?.id || '' : item.assignedto || '',
+        assetcategoryid: typeof item.assetcategoryid === 'object' ? (item.assetcategoryid as any)?.id || (item.assetcategoryid as any)?.name || '' : item.assetcategoryid || '',
+        assetcategory: typeof item.assetcategory === 'object' ? (item.assetcategory as any)?.name || (item.assetcategory as any)?.id || '' : item.assetcategory || '',
       });
-      setNewAttachments([]);
-      setRemovedAttachments([]);
     }
-  }, [item]);
+  }, [item, categories]);
 
   if (!isOpen || !item) return null;
 
@@ -95,24 +132,39 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
   };
 
   const handleDropdownChange = (field: string, value: string) => {
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      
+      // If location is being updated, also update the unique ID
+      if (field === 'locationofitem' && prev.uniqueid) {
+        updated.uniqueid = updateUniqueIdWithNewLocation(prev.uniqueid, value);
+      }
+      
+      return updated;
+    });
+  };
+
+  const handleCategoryTypeChange = (categoryType: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      categorytype: categoryType,
+      assetcategory: '', // Reset category when type changes
+      assetcategoryid: '', // Reset category ID when type changes
+      assetnamefromcategory: '' // Reset asset name when type changes
     }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setNewAttachments(prev => [...prev, ...files]);
-  };
+  const availableCategories = categories?.filter((cat: any) => cat.isactive);
+  
+  // Filter categories based on selected type
+  const filteredCategories = formData?.categorytype 
+    ? availableCategories?.filter((cat: any) => cat.type === formData.categorytype)
+    : availableCategories;
 
-  const removeNewAttachment = (index: number) => {
-    setNewAttachments(prev => prev.filter((_, i) => i !== index));
-  };
 
-  const removeExistingAttachment = (attachmentUrl: string) => {
-    setRemovedAttachments(prev => [...prev, attachmentUrl]);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,20 +181,29 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
         lastmodifieddate: new Date(),
       };
 
-      // Convert user ID to user name for issuedto field (database expects names, not IDs)
+      // Keep issuedto as is (it's already a name string from the form)
+      // If needed, you can still convert ID to name here
       if (updateData.issuedto && updateData.issuedto !== '') {
-        const issuedToUser = users.find((u: any) => u.id === updateData.issuedto);
-        if (issuedToUser) {
+        const issuedToUser = users.find((u: any) => u.id === updateData.issuedto || u.name === updateData.issuedto);
+        if (issuedToUser && issuedToUser.id === updateData.issuedto) {
           updateData.issuedto = (issuedToUser as any).name;
         }
       }
 
       // Convert user ID to user name for issuedby field (database expects names, not IDs)
       if (updateData.issuedby && updateData.issuedby !== '') {
-        const issuedByUser = users.find((u: any) => u.id === updateData.issuedby);
-        if (issuedByUser) {
+        const issuedByUser = users.find((u: any) => u.id === updateData.issuedby || u.name === updateData.issuedby);
+        if (issuedByUser && issuedByUser.id === updateData.issuedby) {
           updateData.issuedby = (issuedByUser as any).name;
         }
+      }
+
+      // Ensure assetnamefromcategory is synced with assetname
+      const updateDataWithExtras = updateData as any;
+      if (updateDataWithExtras.assetnamefromcategory && !updateData.assetname) {
+        updateData.assetname = updateDataWithExtras.assetnamefromcategory;
+      } else if (updateData.assetname && !updateDataWithExtras.assetnamefromcategory) {
+        updateDataWithExtras.assetnamefromcategory = updateData.assetname;
       }
 
       // Remove undefined values
@@ -240,47 +301,73 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 name="uniqueid"
                 value={formData.uniqueid || ''}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl bg-gray-50 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 readOnly
               />
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Financial Year
-              </label>
-              <input
-                type="text"
-                name="financialyear"
+              <FinancialYearDropdown
+                label="Financial Year"
                 value={formData.financialyear || ''}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(value) => handleDropdownChange('financialyear', value)}
+                placeholder="Select Financial Year"
               />
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Asset Name
-              </label>
-              <input
-                type="text"
-                name="assetname"
-                value={formData.assetname || ''}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              <CategoryTypeDropdown
+                label="Asset Type *"
+                value={formData.categorytype || ''}
+                onChange={handleCategoryTypeChange}
+                placeholder="Choose Major or Minor"
               />
             </div>
 
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Asset Category
-              </label>
-              <CategoryDropdown
-                value={formData.assetcategory || ''}
-                onChange={(value) => handleDropdownChange('assetcategory', value)}
-                categories={categories}
-              />
-            </div>
+            {formData.categorytype && (
+              <div>
+                <CategoryDropdown
+                  label={`Asset Category * (${formData.categorytype === 'major' ? 'Major' : 'Minor'})`}
+                  categories={filteredCategories}
+                  value={formData.assetcategory || ''}
+                  onChange={(value) => {
+                    const category = filteredCategories?.find((cat: any) => cat.name === value);
+                    setFormData(prev => ({
+                      ...prev,
+                      assetcategory: value,
+                      assetcategoryid: category?.id || "",
+                      assetnamefromcategory: '' // Reset asset name when category changes
+                    }));
+                  }}
+                  placeholder={`Select ${formData.categorytype === 'major' ? 'Major' : 'Minor'} Category`}
+                />
+              </div>
+            )}
+
+            {formData.assetcategory && (
+              <div>
+                <AssetNameDropdown
+                  label={`Asset Name * (${formData.categorytype === 'major' ? 'Major' : 'Minor'})`}
+                  categories={filteredCategories || []}
+                  categoryType={formData.categorytype || ''}
+                  assetCategory={formData.assetcategory || ''}
+                  value={formData.assetnamefromcategory || formData.assetname || ''}
+                  onChange={(value) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      assetnamefromcategory: value,
+                      assetname: value // Also update the main assetname field
+                    }));
+                  }}
+                  placeholder="Select asset name from category"
+                  searchable
+                  inventoryItems={inventoryItems}
+                  showAddButton={true}
+                  showDeleteButton={true}
+                  onCategoriesChange={refetchCategories}
+                />
+              </div>
+            )}
 
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -317,7 +404,7 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
 
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-700">
-                Unit Price
+                Rate (Inclusive Tax)
               </label>
               <input
                 type="number"
@@ -325,7 +412,9 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 value={formData.rateinclusivetax || 0}
                 onChange={handleNumberChange}
                 step="0.01"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                min="0"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 1500.00"
               />
             </div>
 
@@ -339,7 +428,9 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 value={formData.totalcost || 0}
                 onChange={handleNumberChange}
                 step="0.01"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                readOnly
+                className="w-full h-11 px-4 text-gray-600 border border-gray-300 rounded-xl bg-gray-50"
+                placeholder="Calculated automatically"
               />
             </div>
 
@@ -371,20 +462,40 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 name="makemodel"
                 value={formData.makemodel || ''}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Dell Inspiron 15"
               />
             </div>
 
+            {/* Auto-generated Serial Number from Unique ID */}
+            <div>
+              <label className="flex items-center mb-2 text-sm font-medium text-gray-700">
+                <span>Serial Number</span>
+                <span className="px-2 py-1 ml-2 text-xs text-blue-800 bg-blue-100 rounded-full">Auto-Generated</span>
+              </label>
+              <input
+                type="text"
+                name="serialNumber"
+                value={extractSerialNumberFromUniqueId(formData.uniqueid || '')}
+                readOnly
+                disabled
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl bg-gray-50 cursor-not-allowed text-gray-700 font-mono font-semibold"
+                placeholder="Extracted from Unique ID"
+              />
+            </div>
+
+            {/* Product Serial Number (optional, for manufacturer's serial number) */}
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-700">
-                Serial Number
+                Product Serial Number <span className="text-gray-400 font-normal">(Optional)</span>
               </label>
               <input
                 type="text"
                 name="productserialnumber"
                 value={formData.productserialnumber || ''}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Manufacturer's serial number (if available)"
               />
             </div>
 
@@ -397,7 +508,8 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 name="vendorname"
                 value={formData.vendorname || ''}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Dell India"
               />
             </div>
 
@@ -410,33 +522,22 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 name="invoicenumber"
                 value={formData.invoicenumber || ''}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Asset Category ID
-              </label>
-              <input
-                type="text"
-                name="assetcategoryid"
-                value={formData.assetcategoryid || ''}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
 
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-700">
                 Specification
               </label>
-              <input
-                type="text"
+              <textarea
                 name="specification"
                 value={formData.specification || ''}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
+                className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                placeholder="Technical specifications..."
               />
             </div>
 
@@ -449,7 +550,7 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 name="balancequantityinstock"
                 value={formData.balancequantityinstock || 0}
                 onChange={handleNumberChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -462,7 +563,7 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 name="minimumstocklevel"
                 value={formData.minimumstocklevel || 0}
                 onChange={handleNumberChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -475,21 +576,21 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 name="purchaseordernumber"
                 value={formData.purchaseordernumber || ''}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-700">
-                Expected Lifespan
+                Warranty Information
               </label>
               <input
                 type="text"
-                name="expectedlifespan"
-                value={formData.expectedlifespan || ''}
+                name="warrantyinformation"
+                value={formData.warrantyinformation || ''}
                 onChange={handleInputChange}
-                placeholder="e.g., 5 years"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 3 years"
               />
             </div>
 
@@ -504,36 +605,12 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 onChange={handleInputChange}
                 min="0"
                 step="0.01"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="e.g., 5000.00"
               />
               <p className="mt-1 text-xs text-gray-500">
                 💰 Annual management and maintenance charges
               </p>
-            </div>
-
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Salvage Value
-              </label>
-              <input
-                type="number"
-                name="salvagevalue"
-                value={(formData as any).salvagevalue || 0}
-                onChange={handleNumberChange}
-                step="0.01"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Depreciation Method
-              </label>
-              <DepreciationMethodDropdown
-                value={formData.depreciationmethod || 'straight-line'}
-                onChange={(value) => handleDropdownChange('depreciationmethod', value)}
-              />
             </div>
               </div>
             </div>
@@ -545,34 +622,85 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                 <h3 className="text-lg font-semibold text-gray-900">Financial & Maintenance</h3>
               </div>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Warranty Information
-              </label>
-              <textarea
-                name="warrantyinformation"
-                value={formData.warrantyinformation || ''}
-                onChange={handleInputChange}
-                rows={3}
-                placeholder="Enter warranty details..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Maintenance Schedule
+                  </label>
+                  <textarea
+                    name="maintenanceschedule"
+                    value={formData.maintenanceschedule || ''}
+                    onChange={handleInputChange}
+                    rows={3}
+                    placeholder="Enter maintenance schedule..."
+                    className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Maintenance Schedule
-              </label>
-              <textarea
-                name="maintenanceschedule"
-                value={formData.maintenanceschedule || ''}
-                onChange={handleInputChange}
-                rows={3}
-                placeholder="Enter maintenance schedule..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+            {/* Depreciation Section */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <TrendingDown className="w-5 h-5 text-purple-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Depreciation Information</h3>
               </div>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <DepreciationMethodDropdown
+                    label="Depreciation Method"
+                    value={formData.depreciationmethod || 'written-down-value'}
+                    onChange={(value) => handleDropdownChange('depreciationmethod', value)}
+                    placeholder="Select depreciation method"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Useful Life (Years)
+                  </label>
+                  <input
+                    type="number"
+                    name="expectedlifespan"
+                    value={formData.expectedlifespan || ''}
+                    onChange={handleInputChange}
+                    min="1"
+                    max="50"
+                    className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., 5"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Salvage Value (₹)
+                  </label>
+                  <input
+                    type="number"
+                    name="salvagevalue"
+                    value={(formData as any).salvagevalue || ''}
+                    onChange={handleNumberChange}
+                    min="0"
+                    step="0.01"
+                    className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., 1000.00"
+                  />
+                </div>
+              </div>
+
+              {formData.depreciationmethod && formData.expectedlifespan && formData.rateinclusivetax && formData.rateinclusivetax > 0 && (
+                <div className="mt-6">
+                  <DepreciationCalculator
+                    assetValue={formData.rateinclusivetax}
+                    salvageValue={(formData as any).salvagevalue || 0}
+                    usefulLife={Number(formData.expectedlifespan)}
+                    purchaseDate={formData.dateofinvoice || new Date()}
+                    method={(formData.depreciationmethod || 'written-down-value') as 'written-down-value'}
+                    onCalculate={(depreciation: any) => {
+                      console.log('Depreciation calculated:', depreciation);
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Issuance & Dates Section */}
@@ -586,15 +714,19 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
               {formData.status === 'issued' && (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-6">
                   <div>
-                    <UserDropdown
-                      label="Issued To"
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
+                      Issued To
+                    </label>
+                    <input
+                      type="text"
+                      name="issuedto"
                       value={formData.issuedto || ''}
-                      onChange={(value) => handleDropdownChange('issuedto', value)}
-                      placeholder="Select employee, manager, or admin"
-                      required
+                      onChange={handleInputChange}
+                      className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., Rohit Kumar"
                     />
                     <p className="mt-1 text-xs text-gray-500">
-                      👤 Select the person this item is issued to
+                      👤 Enter the name of the person this item is issued to
                     </p>
                   </div>
 
@@ -603,7 +735,7 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                       Expected Return Date
                     </label>
                     <CustomDatePicker
-                      selected={formData.expectedreturndate || null}
+                      selected={formData.expectedreturndate ? getValidInventoryDate(formData.expectedreturndate) : null}
                       onChange={(date) => handleDateChange('expectedreturndate', date || undefined)}
                       placeholder="Select expected return date"
                       minDate={new Date()}
@@ -622,9 +754,9 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                     Date of Invoice
                   </label>
                   <CustomDatePicker
-                    selected={formData.dateofinvoice || null}
+                    selected={formData.dateofinvoice ? getValidInventoryDate(formData.dateofinvoice) : null}
                     onChange={(date) => handleDateChange('dateofinvoice', date || undefined)}
-                    placeholder="Select date"
+                    placeholder="Select invoice date"
                   />
                 </div>
 
@@ -633,9 +765,9 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                     Date of Entry
                   </label>
                   <CustomDatePicker
-                    selected={formData.dateofentry || null}
+                    selected={formData.dateofentry ? getValidInventoryDate(formData.dateofentry) : null}
                     onChange={(date) => handleDateChange('dateofentry', date || undefined)}
-                    placeholder="Select date"
+                    placeholder="Select entry date"
                   />
                 </div>
 
@@ -644,9 +776,9 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
                     Date of Issue
                   </label>
                   <CustomDatePicker
-                    selected={formData.dateofissue || null}
+                    selected={formData.dateofissue ? getValidInventoryDate(formData.dateofissue) : null}
                     onChange={(date) => handleDateChange('dateofissue', date || undefined)}
-                    placeholder="Select date"
+                    placeholder="Select issue date"
                   />
                 </div>
               </div>
@@ -656,15 +788,15 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
               <div className="flex items-center space-x-2 mb-6">
                 <FileText className="w-5 h-5 text-gray-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Description</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Description/Purpose</h3>
               </div>
               <textarea
                 name="description"
                 value={formData.description || ''}
                 onChange={handleInputChange}
                 rows={4}
-                placeholder="Enter detailed description of the asset..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                placeholder="Purpose and description..."
+                className="w-full min-h-[100px] px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
               />
             </div>
 

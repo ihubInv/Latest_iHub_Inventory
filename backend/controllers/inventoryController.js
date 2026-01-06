@@ -133,8 +133,8 @@ const generateUniqueIdWithGlobalSerial = async (financialyear, assetname, locati
   const serialNumber = await SerialNumberCounter.getNextSequence();
   const serialNumberStr = serialNumber.toString().padStart(3, '0');
   
-  // Build unique ID: IHUB/{financialyear}/{assetcode}/{location}/{serial}
-  let uniqueId = 'IHUB/';
+  // Build unique ID: iHUB/{financialyear}/{assetcode}/{location}/{serial}
+  let uniqueId = 'iHUB/';
   
   // Add financial year or placeholder
   if (financialyear) {

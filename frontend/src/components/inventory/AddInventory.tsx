@@ -194,8 +194,8 @@ const AddInventory: React.FC = () => {
       
       // Check if unique ID follows the correct format
       const parts = normalizedId.split('/');
-      if (parts.length !== 5 || parts[0] !== 'IHUB') {
-        return { isValid: false, error: 'Invalid unique ID format. Must be: IHUB/year/category/location/serial' };
+      if (parts.length !== 5 || parts[0] !== 'iHUB') {
+        return { isValid: false, error: 'Invalid unique ID format. Must be: iHUB/year/category/location/serial' };
       }
 
       // Check for placeholders (serial number should be a valid 3-digit number)
