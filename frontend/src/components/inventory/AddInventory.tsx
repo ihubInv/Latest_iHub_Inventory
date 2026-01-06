@@ -8,7 +8,7 @@ import {
 } from '../../store/api';
 import { useAppSelector } from '../../store/hooks';
 import CustomDatePicker from '../common/DatePicker';
-import { Save, X, Package, Calendar, DollarSign, MapPin, TrendingDown, CalendarIcon, Upload, Plus, List } from 'lucide-react';
+import { Save, X, Package, Calendar, DollarSign, MapPin, TrendingDown, Upload, Plus, List } from 'lucide-react';
 import { usePersistedFormState } from '../../hooks/usePersistedState';
 
 // import UploadDropzone from '../common/UploadDropzone';
@@ -23,6 +23,7 @@ import StatusDropdown from '../common/StatusDropdown';
 import ConditionDropdown from '../common/ConditionDropdown';
 import UnitDropdown from '../common/UnitDropdown';
 import DepreciationMethodDropdown from '../common/DepreciationMethodDropdown';
+import FinancialYearDropdown from '../common/FinancialYearDropdown';
 import BulkUpload from './BulkUpload';
 import { bulkUploadInventory } from '../../services/bulkUploadService';
 
@@ -51,7 +52,6 @@ const AddInventory: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [showFinancialYearPicker, setShowFinancialYearPicker] = useState(false);
   const [activeTab, setActiveTab] = useState<'single' | 'multi' | 'bulk'>('single');
   const [showAddRowsModal, setShowAddRowsModal] = useState(false);
   const [rowsToAdd, setRowsToAdd] = useState<string>('1');
@@ -80,31 +80,8 @@ const AddInventory: React.FC = () => {
     { uniqueid: '', assetname: '', assetnamefromcategory: '', categorytype: '', assetcategory: '', assetcategoryid: '', makemodel: '', productserialnumber: '', vendorname: '', rateinclusivetax: 0, totalcost: 0, quantity: 1, status: 'available', conditionofasset: 'excellent', depreciationmethod: 'written-down-value', expectedlifespan: '', salvagevalue: 0, dateofinvoice: new Date(), dateofentry: new Date() }
   ]);
 
-  // Function to convert date to financial year format (e.g., 2025-26)
-  const getFinancialYearFromDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = date.getMonth(); // 0-11
-    
-    // Financial year typically runs from April to March
-    // If month is April (3) or later, it's the start of financial year
-    // If month is before April (0-2), it's the end of previous financial year
-    if (month >= 3) { // April to December
-      return `${year}-${(year + 1).toString().slice(-2)}`;
-    } else { // January to March
-      return `${year - 1}-${year.toString().slice(-2)}`;
-    }
-  };
-
   // Get current financial year
   const currentFY = getCurrentFinancialYear();
-  
-  // Get next financial year
-  const getNextFinancialYear = (fy: string): string => {
-    const [start, end] = fy.split('-');
-    const nextStart = parseInt(start) + 1;
-    const nextEnd = parseInt(end) + 1;
-    return `${nextStart}-${nextEnd.toString().slice(-2)}`;
-  };
 
   // Initialize form data with persistent state
   const defaultFormData = {
@@ -395,20 +372,6 @@ const AddInventory: React.FC = () => {
     }
   };
 
-  // Close financial year picker when clicking outside
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showFinancialYearPicker) {
-        const target = event.target as HTMLElement;
-        if (!target.closest('.financial-year-picker-container')) {
-          setShowFinancialYearPicker(false);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showFinancialYearPicker]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -990,86 +953,20 @@ const handleFile = (file?: File) => {
             </div>
 
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Financial Year *
-              </label>
-              <div className="relative financial-year-picker-container">
-                <input
-                  type="text"
-                  name="financialyear"
-                  value={formData.financialyear}
-                  onClick={() => setShowFinancialYearPicker(true)}
-                  readOnly
-                  required
-                  className="w-full h-10 px-4 pr-10 bg-white border border-gray-300 rounded-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Select Financial Year"
-                />
-                <div 
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
-                  onClick={() => setShowFinancialYearPicker(true)}
-                >
-                  <CalendarIcon className="w-4 h-4 text-gray-400" />
-                </div>
-                
-                {/* Financial Year Picker Dropdown */}
-                {showFinancialYearPicker && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                    <div className="p-4">
-                      <div className="mb-3 text-sm font-medium text-gray-700">Select a date to determine Financial Year</div>
-                      <div className="p-2 border border-gray-200 rounded-md">
-                        <CustomDatePicker
-                          selected={new Date()}
-                          onChange={(date: Date | null) => {
-                            if (date) {
-                              const financialYear = getFinancialYearFromDate(date);
-                              setFormData(prev => ({
-                                ...prev,
-                                financialyear: financialYear
-                              }));
-                              setShowFinancialYearPicker(false);
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="pt-3 mt-3 border-t border-gray-200">
-                        <div className="mb-2 text-xs text-gray-600">Or choose from recent years:</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            currentFY,
-                            getNextFinancialYear(currentFY)
-                          ].map(year => (
-                            <button
-                              key={year}
-                              type="button"
-                              onClick={() => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  financialyear: year
-                                }));
-                                setShowFinancialYearPicker(false);
-                              }}
-                              className="px-3 py-2 text-sm transition-colors border border-gray-300 rounded-md hover:bg-blue-50 hover:border-blue-300"
-                            >
-                              {year}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex justify-end pt-3 mt-3 border-t border-gray-200">
-                        <button
-                          type="button"
-                          onClick={() => setShowFinancialYearPicker(false)}
-                          className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
-                        >
-                          Close
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <FinancialYearDropdown
+                label="Financial Year"
+                value={formData.financialyear}
+                onChange={(value) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    financialyear: value
+                  }));
+                }}
+                required
+                placeholder="Select Financial Year"
+              />
               <p className="mt-1 text-xs text-gray-500">
-                📅 Click to select date or choose from preset years • Currently: <span className="font-semibold text-blue-600">{formData.financialyear}</span>
+                Financial Year runs from 1st April to 31st March • Currently: <span className="font-semibold text-blue-600">{formData.financialyear || 'Not selected'}</span>
               </p>
             </div>
 

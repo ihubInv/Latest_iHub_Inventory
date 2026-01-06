@@ -110,7 +110,29 @@ const validateInventoryItem = [
   body('financialyear')
     .trim()
     .notEmpty()
-    .withMessage('Financial year is required'),
+    .withMessage('Financial year is required')
+    .matches(/^\d{4}-\d{2}$/)
+    .withMessage('Financial year must be in format YYYY-YY (e.g., 2020-21)')
+    .custom((value) => {
+      // Validate financial year format: YYYY-YY where YY is the last 2 digits of YYYY+1
+      const [startYear, endYear] = value.split('-');
+      const start = parseInt(startYear, 10);
+      const end = parseInt(endYear, 10);
+      const expectedEnd = parseInt((start + 1).toString().slice(-2), 10);
+      
+      // Check if end year matches start year + 1
+      if (end !== expectedEnd) {
+        throw new Error('Invalid financial year format. End year must be start year + 1 (e.g., 2020-21)');
+      }
+      
+      // Check if financial year is from 2020 onwards
+      if (start < 2020) {
+        throw new Error('Financial year must be from 2020-21 onwards');
+      }
+      
+      return true;
+    })
+    .withMessage('Invalid financial year'),
   body('assetcategory')
     .trim()
     .notEmpty()

@@ -10,31 +10,52 @@ export const COMPANY_INFO = {
 }
 
 // Get valid financial years for dropdowns
+// Returns list from 2020-21 onwards to current/next financial year
 export const getFinancialYears = () => {
   const currentYear = new Date().getFullYear()
   const currentMonth = new Date().getMonth()
   const years = []
   
-  // If we're past April, include current FY
-  const startYear = currentMonth >= COMPANY_INFO.financialYearStart ? currentYear : currentYear - 1
+  // Financial Year starts from 2020-21 (April 1, 2020 to March 31, 2021)
+  const startFY = 2020
   
-  // Generate last 10 financial years
-  for (let i = 0; i < 10; i++) {
-    const year = startYear - i
+  // Determine the latest financial year
+  // If current month is April (3) or later, current FY is currentYear-currentYear+1
+  // If current month is before April, current FY is previousYear-currentYear
+  let latestYear: number
+  if (currentMonth >= 3) { // April (3) to December (11)
+    latestYear = currentYear
+  } else { // January (0) to March (2)
+    latestYear = currentYear - 1
+  }
+  
+  // Generate financial years from 2020-21 to latest year
+  for (let year = startFY; year <= latestYear; year++) {
     years.push(`${year}-${(year + 1).toString().slice(-2)}`)
   }
   
-  return years
+  // Reverse to show latest first
+  return years.reverse()
 }
 
 // Get current financial year
+// Financial Year runs from 1st April to 31st March
+// If today's date is before 1st April, select the previous Financial Year
+// If today's date is on or after 1st April, select the current Financial Year
 export const getCurrentFinancialYear = () => {
-  const currentYear = new Date().getFullYear()
-  const currentMonth = new Date().getMonth()
+  const today = new Date()
+  const currentYear = today.getFullYear()
+  const currentMonth = today.getMonth() // 0-11 (0 = January, 3 = April)
+  const currentDay = today.getDate()
   
-  if (currentMonth >= COMPANY_INFO.financialYearStart) {
+  // April 1st is month 3 (0-indexed) and day 1
+  // If we're on or after April 1st, we're in the current Financial Year
+  // If we're before April 1st, we're in the previous Financial Year
+  if (currentMonth > 3 || (currentMonth === 3 && currentDay >= 1)) {
+    // On or after April 1st: Current FY is currentYear-currentYear+1
     return `${currentYear}-${(currentYear + 1).toString().slice(-2)}`
   } else {
+    // Before April 1st: Current FY is previousYear-currentYear
     return `${currentYear - 1}-${currentYear.toString().slice(-2)}`
   }
 }
