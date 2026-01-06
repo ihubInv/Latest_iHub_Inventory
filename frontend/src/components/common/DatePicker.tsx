@@ -196,24 +196,102 @@ const CustomDatePicker: React.FC<DatePickerProps> = ({
   minDate,
   maxDate,
   showTimeSelect = false,
-  dateFormat = "MM/dd/yyyy",
+  dateFormat = "dd/MM/yyyy",
   isClearable = true
 }) => {
+  // Parse manual date input in DD/MM/YYYY format
+  const parseManualDate = (input: string): Date | null => {
+    if (!input || input.trim() === '') return null;
+    
+    // Remove all non-digit characters and slashes, then try to parse
+    const cleanInput = input.trim();
+    
+    // Try DD/MM/YYYY format
+    const ddmmyyyy = cleanInput.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (ddmmyyyy) {
+      const day = parseInt(ddmmyyyy[1], 10);
+      const month = parseInt(ddmmyyyy[2], 10) - 1; // Month is 0-indexed
+      const year = parseInt(ddmmyyyy[3], 10);
+      
+      // Validate ranges
+      if (day >= 1 && day <= 31 && month >= 0 && month <= 11 && year >= 1900 && year <= 2100) {
+        const date = new Date(year, month, day);
+        // Verify the date is valid
+        if (date.getDate() === day && date.getMonth() === month && date.getFullYear() === year) {
+          // Validate against min/max dates if provided
+          if (minDate && date < minDate) return null;
+          if (maxDate && date > maxDate) return null;
+          return date;
+        }
+      }
+    }
+    
+    // Try DD-MM-YYYY format
+    const ddmmyyyyDash = cleanInput.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+    if (ddmmyyyyDash) {
+      const day = parseInt(ddmmyyyyDash[1], 10);
+      const month = parseInt(ddmmyyyyDash[2], 10) - 1;
+      const year = parseInt(ddmmyyyyDash[3], 10);
+      
+      if (day >= 1 && day <= 31 && month >= 0 && month <= 11 && year >= 1900 && year <= 2100) {
+        const date = new Date(year, month, day);
+        if (date.getDate() === day && date.getMonth() === month && date.getFullYear() === year) {
+          if (minDate && date < minDate) return null;
+          if (maxDate && date > maxDate) return null;
+          return date;
+        }
+      }
+    }
+    
+    // Try native Date parsing as fallback
+    const parsed = new Date(cleanInput);
+    if (!isNaN(parsed.getTime())) {
+      if (minDate && parsed < minDate) return null;
+      if (maxDate && parsed > maxDate) return null;
+      return parsed;
+    }
+    
+    return null;
+  };
+
+  // Handle manual input - this ensures the calendar updates when user types
+  const handleManualInput = (e: any) => {
+    if (e && e.target && 'value' in e.target) {
+      const inputValue = (e.target as HTMLInputElement).value;
+      const parsedDate = parseManualDate(inputValue);
+      
+      if (parsedDate) {
+        // Update the date which will sync with the calendar
+        onChange(parsedDate);
+      } else if (inputValue === '') {
+        onChange(null);
+      }
+    }
+  };
+
+  // Normalize selected to ensure it's always a valid Date object
+  const normalizedSelected = selected instanceof Date && !isNaN(selected.getTime()) 
+    ? selected 
+    : null;
+
   return (
     <div className="relative">
       <div className="absolute inset-y-0 left-0 z-10 flex items-center pl-3 pointer-events-none">
         <Calendar className="w-5 h-5 text-gray-400" />
       </div>
       <ReactDatePicker
-        selected={selected}
+        selected={normalizedSelected}
         onChange={onChange}
-        placeholderText={placeholder}
+        onChangeRaw={handleManualInput}
+        placeholderText={placeholder || "DD/MM/YYYY"}
         disabled={disabled}
         minDate={minDate}
         maxDate={maxDate}
         showTimeSelect={showTimeSelect}
         dateFormat={dateFormat}
         isClearable={isClearable}
+        allowSameDay={true}
+        strictParsing={false}
         className={`w-full h-10 pl-10 pr-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${className}`}
         calendarClassName="custom-datepicker"
         popperClassName="custom-datepicker-popper"
