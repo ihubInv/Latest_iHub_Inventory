@@ -74,10 +74,12 @@ const AddInventory: React.FC = () => {
     depreciationmethod: string;
     expectedlifespan: string;
     salvagevalue: number;
+    specification: string;
+    description: string;
     dateofinvoice: Date | null;
     dateofentry: Date | null;
   }>>([
-    { uniqueid: '', assetname: '', assetnamefromcategory: '', categorytype: '', assetcategory: '', assetcategoryid: '', makemodel: '', productserialnumber: '', vendorname: '', rateinclusivetax: 0, totalcost: 0, quantity: 1, status: 'available', conditionofasset: 'excellent', depreciationmethod: 'written-down-value', expectedlifespan: '', salvagevalue: 0, dateofinvoice: new Date(), dateofentry: new Date() }
+    { uniqueid: '', assetname: '', assetnamefromcategory: '', categorytype: '', assetcategory: '', assetcategoryid: '', makemodel: '', productserialnumber: '', vendorname: '', rateinclusivetax: 0, totalcost: 0, quantity: 1, status: 'available', conditionofasset: 'excellent', depreciationmethod: 'written-down-value', expectedlifespan: '', salvagevalue: 0, specification: '', description: '', dateofinvoice: new Date(), dateofentry: new Date() }
   ]);
 
   // Get current financial year
@@ -194,7 +196,7 @@ const AddInventory: React.FC = () => {
       
       // Check if unique ID follows the correct format
       const parts = normalizedId.split('/');
-      if (parts.length !== 5 || parts[0] !== 'iHUB') {
+      if (parts.length !== 5 || parts[0] !== 'IHUB') {
         return { isValid: false, error: 'Invalid unique ID format. Must be: iHUB/year/category/location/serial' };
       }
 
@@ -776,17 +778,6 @@ const handleFile = (file?: File) => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Add Inventory</h1>
           <p className="mt-1 text-gray-600">Add new assets to your inventory system</p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl">
-            <div className="flex items-center space-x-2">
-              <Package className="w-5 h-5 text-blue-600" />
-              <div>
-                <p className="text-xs text-blue-600 font-medium">Total Items in DB</p>
-                <p className="text-lg font-bold text-blue-700">{totalItemsCount}</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1866,6 +1857,40 @@ const handleFile = (file?: File) => {
                             />
                           </div>
                         </div>
+                        
+                        <div className="grid grid-cols-1 gap-6 mt-6 md:grid-cols-2">
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                              Specification
+                            </label>
+                            <textarea
+                              value={it.specification || ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, specification: v } : row));
+                              }}
+                              rows={3}
+                              className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                              placeholder="Technical specifications..."
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                              Description / Purpose
+                            </label>
+                            <textarea
+                              value={it.description || ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, description: v } : row));
+                              }}
+                              rows={3}
+                              className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                              placeholder="Purpose and description..."
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1955,6 +1980,8 @@ const handleFile = (file?: File) => {
                               depreciationmethod: mi.depreciationmethod,
                               expectedlifespan: mi.expectedlifespan,
                               salvagevalue: mi.salvagevalue,
+                              specification: mi.specification || '',
+                              description: mi.description || '',
                               dateofinvoice: mi.dateofinvoice,
                               dateofentry: mi.dateofentry,
                               attachments: [],
@@ -1995,6 +2022,8 @@ const handleFile = (file?: File) => {
                             depreciationmethod: 'written-down-value', 
                             expectedlifespan: '', 
                             salvagevalue: 0, 
+                            specification: '',
+                            description: '',
                             dateofinvoice: new Date(), 
                             dateofentry: new Date() 
                           }]);
@@ -2089,6 +2118,8 @@ const handleFile = (file?: File) => {
                               depreciationmethod: 'written-down-value',
                               expectedlifespan: '',
                               salvagevalue: 0,
+                              specification: '',
+                              description: '',
                               dateofinvoice: new Date(),
                               dateofentry: new Date()
                             }));
@@ -2152,6 +2183,8 @@ const handleFile = (file?: File) => {
                                   depreciationmethod: template.depreciationmethod,
                                   expectedlifespan: template.expectedlifespan,
                                   salvagevalue: template.salvagevalue,
+                                  specification: template.specification || '',
+                                  description: template.description || '',
                                   dateofinvoice: template.dateofinvoice || new Date(),
                                   dateofentry: template.dateofentry || new Date()
                                 };
