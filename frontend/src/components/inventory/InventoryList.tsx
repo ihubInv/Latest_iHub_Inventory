@@ -75,7 +75,10 @@ interface AddInventoryFormData {
 // import UpdateInventory from './updateInventory';
 
 const InventoryList: React.FC = () => {
-  const { data: inventoryResponse, isLoading: loading } = useGetInventoryItemsQuery({}, {
+  const { data: inventoryResponse, isLoading: loading } = useGetInventoryItemsQuery({ 
+    page: 1,
+    limit: 10000 // fetch all items to show accurate total
+  }, {
     refetchOnMountOrArgChange: true, // Always refetch on mount if data is stale
     refetchOnFocus: true, // Refetch when window gains focus
     refetchOnReconnect: true, // Refetch when network reconnects

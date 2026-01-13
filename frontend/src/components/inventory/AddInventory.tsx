@@ -76,10 +76,16 @@ const AddInventory: React.FC = () => {
     salvagevalue: number;
     specification: string;
     description: string;
+    invoicenumber: string;
     dateofinvoice: Date | null;
     dateofentry: Date | null;
+    purchaseordernumber: string;
+    unitofmeasurement: string;
+    locationofitem: string;
+    warrantyinformation: string;
+    annualmanagementcharge: number;
   }>>([
-    { uniqueid: '', assetname: '', assetnamefromcategory: '', categorytype: '', assetcategory: '', assetcategoryid: '', makemodel: '', productserialnumber: '', vendorname: '', rateinclusivetax: 0, totalcost: 0, quantity: 1, status: 'available', conditionofasset: 'excellent', depreciationmethod: 'written-down-value', expectedlifespan: '', salvagevalue: 0, specification: '', description: '', dateofinvoice: new Date(), dateofentry: new Date() }
+    { uniqueid: '', assetname: '', assetnamefromcategory: '', categorytype: '', assetcategory: '', assetcategoryid: '', makemodel: '', productserialnumber: '', vendorname: '', rateinclusivetax: 0, totalcost: 0, quantity: 1, status: 'available', conditionofasset: 'excellent', depreciationmethod: 'written-down-value', expectedlifespan: '', salvagevalue: 0, specification: '', description: '', invoicenumber: '', dateofinvoice: new Date(), dateofentry: new Date(), purchaseordernumber: '', unitofmeasurement: 'Pieces', locationofitem: 'Storage Room A', warrantyinformation: '', annualmanagementcharge: 0 }
   ]);
 
   // Get current financial year
@@ -1779,6 +1785,77 @@ const handleFile = (file?: File) => {
                         </div>
                       </div>
 
+                      {/* Invoice Information */}
+                      <div className="pt-4 border-t border-gray-200">
+                        <div className="flex items-center mb-3 space-x-2">
+                          <Calendar className="w-4 h-4 text-gray-600" />
+                          <h4 className="text-sm font-semibold text-gray-700">Invoice Details</h4>
+                        </div>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                              Invoice Number
+                            </label>
+                            <input
+                              type="text"
+                              value={it.invoicenumber || ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, invoicenumber: v } : row));
+                              }}
+                              className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Invoice number"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                              Date of Invoice
+                            </label>
+                            <CustomDatePicker
+                              selected={it.dateofinvoice}
+                              onChange={(date) => {
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, dateofinvoice: getValidInventoryDate(date || undefined) } : row));
+                              }}
+                              placeholder="Select invoice date"
+                              minDate={new Date(COMPANY_INFO.foundingYear, 0, 1)}
+                              maxDate={new Date()}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                              Date of Entry
+                            </label>
+                            <CustomDatePicker
+                              selected={it.dateofentry}
+                              onChange={(date) => {
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, dateofentry: getValidInventoryDate(date || undefined) || new Date() } : row));
+                              }}
+                              placeholder="Select entry date"
+                              minDate={new Date(COMPANY_INFO.foundingYear, 0, 1)}
+                              maxDate={new Date()}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                              Purchase Order Number
+                            </label>
+                            <input
+                              type="text"
+                              value={it.purchaseordernumber || ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, purchaseordernumber: v } : row));
+                              }}
+                              className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Purchase order number"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Financial Information */}
                       <div className="pt-4 border-t border-gray-200">
                         <div className="flex items-center mb-3 space-x-2">
@@ -1786,6 +1863,18 @@ const handleFile = (file?: File) => {
                           <h4 className="text-sm font-semibold text-gray-700">Financial Details</h4>
                         </div>
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                          <div>
+                            <UnitDropdown
+                              label="Unit of Measurement"
+                              value={it.unitofmeasurement || 'Pieces'}
+                              onChange={(value) => {
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, unitofmeasurement: value } : row));
+                              }}
+                              placeholder="Select unit"
+                              searchable
+                            />
+                          </div>
+
                           <div>
                             <label className="block mb-2 text-sm font-medium text-gray-700">Rate (Incl. Tax) *</label>
                             <input
@@ -1804,15 +1893,67 @@ const handleFile = (file?: File) => {
                             />
                           </div>
 
-                       
-
                           <div>
                             <label className="block mb-2 text-sm font-medium text-gray-700">Total Cost</label>
                             <input
                               type="number"
                               value={it.totalcost}
                               readOnly
-                              className="w-full h-10 px-4 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                              className="w-full h-11 px-4 border border-gray-300 rounded-xl bg-gray-50 text-gray-600"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Location and Status */}
+                      <div className="pt-4 border-t border-gray-200">
+                        <div className="flex items-center mb-3 space-x-2">
+                          <MapPin className="w-4 h-4 text-gray-600" />
+                          <h4 className="text-sm font-semibold text-gray-700">Location & Status</h4>
+                        </div>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+                          <div>
+                            <LocationDropdown
+                              label="Location *"
+                              inventoryItems={inventoryItems}
+                              value={it.locationofitem || formData.locationofitem || 'Storage Room A'}
+                              onChange={(value) => {
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, locationofitem: value } : row));
+                                // Update unique ID when location changes
+                                if (value && it.assetname && it.assetcategory) {
+                                  generateMultipleItemUniqueId(it.assetname, value, idx).then(newId => {
+                                    setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, uniqueid: newId } : row));
+                                  });
+                                }
+                              }}
+                              required
+                              placeholder="Storage Room A"
+                              searchable
+                            />
+                          </div>
+
+                          <div>
+                            <ConditionDropdown
+                              label="Condition"
+                              value={it.conditionofasset}
+                              onChange={(value) => {
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, conditionofasset: value as any } : row));
+                              }}
+                              placeholder="Select condition"
+                              disabled
+                            />
+                          </div>
+
+                          <div>
+                            <StatusDropdown
+                              label="Status"
+                              value={it.status}
+                              onChange={(value) => {
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, status: value as any } : row));
+                              }}
+                              type="inventory"
+                              placeholder="Select status"
+                              disabled
                             />
                           </div>
                         </div>
@@ -1822,43 +1963,10 @@ const handleFile = (file?: File) => {
                       <div className="pt-4 border-t border-gray-200">
                         <div className="flex items-center mb-3 space-x-2">
                           <Package className="w-4 h-4 text-gray-600" />
-                          <h4 className="text-sm font-semibold text-gray-700">Additional Details</h4>
-                        </div>
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                          <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-700">Expected Lifespan (Years)</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max="50"
-                              value={it.expectedlifespan}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, expectedlifespan: v } : row));
-                              }}
-                              className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="e.g., 5"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-700">Salvage Value (₹)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={it.salvagevalue}
-                              onChange={(e) => {
-                                const v = parseFloat(e.target.value || '0');
-                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, salvagevalue: v } : row));
-                              }}
-                              className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="e.g., 1000.00"
-                            />
-                          </div>
+                          <h4 className="text-sm font-semibold text-gray-700">Additional Information</h4>
                         </div>
                         
-                        <div className="grid grid-cols-1 gap-6 mt-6 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                           <div>
                             <label className="block mb-2 text-sm font-medium text-gray-700">
                               Specification
@@ -1889,6 +1997,99 @@ const handleFile = (file?: File) => {
                               className="w-full min-h-[80px] px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
                               placeholder="Purpose and description..."
                             />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6 mt-6 sm:grid-cols-2 lg:grid-cols-3">
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                              Warranty Information
+                            </label>
+                            <input
+                              type="text"
+                              value={it.warrantyinformation || ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, warrantyinformation: v } : row));
+                              }}
+                              className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="e.g., 3 years"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                              Annual Management Charge (AMS) (₹)
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={it.annualmanagementcharge || ''}
+                              onChange={(e) => {
+                                const v = parseFloat(e.target.value || '0');
+                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, annualmanagementcharge: v } : row));
+                              }}
+                              className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="e.g., 5000.00"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Depreciation Section */}
+                        <div className="pt-6 border-t border-gray-200">
+                          <div className="flex items-center mb-3 space-x-2">
+                            <TrendingDown className="w-4 h-4 text-gray-600" />
+                            <h4 className="text-sm font-semibold text-gray-700">Depreciation Information</h4>
+                          </div>
+                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            <div>
+                              <DepreciationMethodDropdown
+                                label="Depreciation Method"
+                                value={it.depreciationmethod || 'written-down-value'}
+                                onChange={(value) => {
+                                  setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, depreciationmethod: value } : row));
+                                }}
+                                placeholder="Select depreciation method"
+                                disabled
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block mb-2 text-sm font-medium text-gray-700">
+                                Useful Life (Years)
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="50"
+                                value={it.expectedlifespan}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, expectedlifespan: v } : row));
+                                }}
+                                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., 5"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block mb-2 text-sm font-medium text-gray-700">
+                                Salvage Value (₹)
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={it.salvagevalue || ''}
+                                onChange={(e) => {
+                                  const v = parseFloat(e.target.value || '0');
+                                  setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, salvagevalue: v } : row));
+                                }}
+                                className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., 1000.00"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1927,6 +2128,9 @@ const handleFile = (file?: File) => {
                           }
                           if (!mi.vendorname || mi.vendorname.trim() === '') {
                             itemErrors.push('Vendor Name');
+                          }
+                          if (!mi.locationofitem || mi.locationofitem.trim() === '') {
+                            itemErrors.push('Location');
                           }
                           if (!mi.rateinclusivetax || mi.rateinclusivetax <= 0) {
                             itemErrors.push('Rate (Inclusive Tax)');
@@ -1982,8 +2186,14 @@ const handleFile = (file?: File) => {
                               salvagevalue: mi.salvagevalue,
                               specification: mi.specification || '',
                               description: mi.description || '',
+                              invoicenumber: mi.invoicenumber || '',
                               dateofinvoice: mi.dateofinvoice,
                               dateofentry: mi.dateofentry,
+                              purchaseordernumber: mi.purchaseordernumber || '',
+                              unitofmeasurement: mi.unitofmeasurement || 'Pieces',
+                              locationofitem: mi.locationofitem || formData.locationofitem,
+                              warrantyinformation: mi.warrantyinformation || '',
+                              annualmanagementcharge: mi.annualmanagementcharge || 0,
                               attachments: [],
                             };
                             
@@ -2024,8 +2234,14 @@ const handleFile = (file?: File) => {
                             salvagevalue: 0, 
                             specification: '',
                             description: '',
+                            invoicenumber: '',
                             dateofinvoice: new Date(), 
-                            dateofentry: new Date() 
+                            dateofentry: new Date(),
+                            purchaseordernumber: '',
+                            unitofmeasurement: 'Pieces',
+                            locationofitem: formData.locationofitem || 'Storage Room A',
+                            warrantyinformation: '',
+                            annualmanagementcharge: 0
                           }]);
                         } catch (err: any) {
                           console.error(err);
@@ -2120,8 +2336,14 @@ const handleFile = (file?: File) => {
                               salvagevalue: 0,
                               specification: '',
                               description: '',
+                              invoicenumber: '',
                               dateofinvoice: new Date(),
-                              dateofentry: new Date()
+                              dateofentry: new Date(),
+                              purchaseordernumber: '',
+                              unitofmeasurement: 'Pieces',
+                              locationofitem: formData.locationofitem || 'Storage Room A',
+                              warrantyinformation: '',
+                              annualmanagementcharge: 0
                             }));
                             setMultipleItems(newRows);
                             setShowAddRowsModal(false);
@@ -2185,8 +2407,14 @@ const handleFile = (file?: File) => {
                                   salvagevalue: template.salvagevalue,
                                   specification: template.specification || '',
                                   description: template.description || '',
+                                  invoicenumber: template.invoicenumber || '',
                                   dateofinvoice: template.dateofinvoice || new Date(),
-                                  dateofentry: template.dateofentry || new Date()
+                                  dateofentry: template.dateofentry || new Date(),
+                                  purchaseordernumber: template.purchaseordernumber || '',
+                                  unitofmeasurement: template.unitofmeasurement || 'Pieces',
+                                  locationofitem: template.locationofitem || formData.locationofitem || 'Storage Room A',
+                                  warrantyinformation: template.warrantyinformation || '',
+                                  annualmanagementcharge: template.annualmanagementcharge || 0
                                 };
                               })
                             );
