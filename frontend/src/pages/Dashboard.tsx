@@ -12,7 +12,7 @@ import {
   CategoryDistributionChart,
   AssetConditionChart,
   MonthlyActivityChart
-} from '../components/charts/ChartComponents'
+} from '../components/charts'
 
 const Dashboard: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth)

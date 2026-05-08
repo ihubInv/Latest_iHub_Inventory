@@ -176,24 +176,37 @@ export interface Location {
   createdby: string;
 }
 
-// Transaction/Inventory Movement Interface
+// Transaction / inventory movement (aligns with backend InventoryTransaction model)
 export interface InventoryTransaction {
   id: string;
-  inventoryitemid: string;
+  _id?: string;
+  inventoryitemid: string | Record<string, unknown>;
   itemname?: string;
-  type: 'issue' | 'return' | 'transfer' | 'adjustment';
+  transactiontype?: string;
+  transactiondate?: Date | string;
+  /** Convenience alias when API normalizes casing */
+  transactionType?: string;
+  transactionDate?: Date | string;
+  /** Legacy/alternate discriminator */
+  type?: 'issue' | 'return' | 'transfer' | 'adjustment' | string;
   quantity: number;
+  previousquantity?: number;
+  newquantity?: number;
+  issuedto?: string | Record<string, unknown>;
+  issuedby?: string | Record<string, unknown>;
   fromuser?: string;
   touser?: string;
   fromlocation?: string;
   tolocation?: string;
-  status: 'pending' | 'approved' | 'completed' | 'cancelled';
+  purpose?: string;
+  status?: 'pending' | 'approved' | 'completed' | 'cancelled';
   notes?: string;
-  approvedby?: string;
-  approvedat?: Date;
-  completedat?: Date;
-  createdat: Date;
-  createdby: string;
+  approvedby?: string | Record<string, unknown>;
+  approvedat?: Date | string;
+  completedat?: Date | string;
+  createdat?: Date | string;
+  createdAt?: Date | string;
+  createdby?: string;
 }
 
 // Dashboard Stats Interface

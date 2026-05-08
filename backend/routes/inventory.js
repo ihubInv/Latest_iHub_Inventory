@@ -5,7 +5,6 @@ const {
   createInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
-  issueInventoryItem,
   returnInventoryItem,
   getAvailableInventoryItems,
   getLowStockItems,
@@ -633,81 +632,6 @@ router.put('/:id', authorize('admin', 'stock-manager'), validateObjectId('id'), 
  *         $ref: '#/components/responses/ServerError'
  */
 router.delete('/:id', authorize('admin', 'stock-manager'), validateObjectId('id'), deleteInventoryItem);
-
-/**
- * @swagger
- * /api/inventory/{id}/issue:
- *   post:
- *     summary: Issue inventory item
- *     tags: [Inventory]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Inventory item ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - issuedTo
- *             properties:
- *               issuedTo:
- *                 type: string
- *                 example: John Doe
- *               expectedReturnDate:
- *                 type: string
- *                 format: date
- *                 example: 2024-12-31
- *               purpose:
- *                 type: string
- *                 example: Development work
- *               notes:
- *                 type: string
- *                 example: Item issued to employee for project work
- *     responses:
- *       200:
- *         description: Item issued successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Item issued successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     item:
- *                       $ref: '#/components/schemas/InventoryItem'
- *                     transaction:
- *                       $ref: '#/components/schemas/InventoryTransaction'
- *       400:
- *         description: Item is out of stock or already issued
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- *       500:
- *         $ref: '#/components/responses/ServerError'
- */
-router.post('/:id/issue', authorize('admin', 'stock-manager'), validateObjectId('id'), issueInventoryItem);
 
 /**
  * @swagger

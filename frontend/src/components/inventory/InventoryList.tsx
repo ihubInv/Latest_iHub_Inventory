@@ -6,7 +6,7 @@ import {
   useDeleteInventoryItemMutation
 } from '../../store/api';
 import { useAppSelector } from '../../store/hooks';
-import { AssetConditionChart, CategoryDistributionChart } from '../charts/ChartComponents';
+import { AssetConditionChart, CategoryDistributionChart } from '../charts';
 import { Search, Filter, Download, Edit, Trash2, Eye, Package, Save, X, Zap, Calculator, BarChart3, List, AlertTriangle, CheckSquare, Square, FileSpreadsheet, FileText, Image, Sliders, RotateCcw, ChevronDown } from 'lucide-react';
 import { CRUDToasts } from '../../services/toastService';
 import toast from 'react-hot-toast';

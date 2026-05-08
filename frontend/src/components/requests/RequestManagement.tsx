@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useGetRequestsQuery, useApproveRequestMutation, useRejectRequestMutation } from '../../store/api'
+import { useGetRequestsQuery, useRejectRequestMutation } from '../../store/api'
 import { useGetInventoryItemQuery, useGetInventoryItemsQuery } from '../../store/api/inventoryApi'
 import { useGetMyReturnRequestsQuery } from '../../store/api/returnRequestsApi'
 import { useAppSelector } from '../../store/hooks'
@@ -14,7 +14,7 @@ interface RequestActionModalProps {
   isOpen: boolean
   onClose: () => void
   request: any
-  action: 'approve' | 'reject' | 'view'
+  action: 'reject' | 'view'
   onSubmit: (data: any) => void
   isLoading: boolean
 }
@@ -65,24 +65,19 @@ const RequestActionModal: React.FC<RequestActionModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-6">
         <div className="flex items-center space-x-3 mb-6">
-          <div className={`p-3 rounded-xl ${
-              action === 'approve' ? 'bg-green-100' : 
-              action === 'reject' ? 'bg-red-100' : 'bg-blue-100'
-            }`}>
-            {action === 'approve' && <CheckCircle className="w-6 h-6 text-green-600" />}
+          <div className={`p-3 rounded-xl ${action === 'reject' ? 'bg-red-100' : 'bg-blue-100'}`}>
             {action === 'reject' && <XCircle className="w-6 h-6 text-red-600" />}
             {action === 'view' && <Eye className="w-6 h-6 text-blue-600" />}
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              {action === 'approve' && 'Approve Request'}
               {action === 'reject' && 'Reject Request'}
               {action === 'view' && 'View Request'}
             </h2>
             <p className="text-gray-600">#{request?.id}</p>
           </div>
         </div>
-        {(action === 'view' || action === 'approve' || action === 'reject') && (
+        {(action === 'view' || action === 'reject') && (
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <div className="text-xs text-gray-500">Requested Asset</div>
@@ -104,20 +99,6 @@ const RequestActionModal: React.FC<RequestActionModalProps> = ({
               <div className="text-xs text-gray-500">Justification</div>
               <div className="text-sm whitespace-pre-wrap text-gray-900">{request?.justification || '—'}</div>
             </div>
-          </div>
-        )}
-
-        {action === 'approve' && (
-          <div className="mb-6">
-            <label className="block mb-2 text-sm font-medium text-gray-700">Reason of approval</label>
-            <textarea
-              name="remarks"
-              value={formData.remarks}
-              onChange={handleChange}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Add approval remarks"
-            />
           </div>
         )}
 
@@ -144,13 +125,10 @@ const RequestActionModal: React.FC<RequestActionModalProps> = ({
               onClick={handleSubmit}
               disabled={isLoading}
               className={`${
-                action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 
-                action === 'reject' ? 'bg-red-600 hover:bg-red-700' : 
-                'bg-blue-600 hover:bg-blue-700'
+                action === 'reject' ? 'bg-red-600 hover:bg-red-700' : ''
               } text-white`}
             >
               {isLoading ? 'Processing...' : (
-                action === 'approve' ? '✅ Approve' :
                 action === 'reject' ? '❌ Reject' : ''
               )}
             </Button>
@@ -163,14 +141,13 @@ const RequestActionModal: React.FC<RequestActionModalProps> = ({
 
 const RequestManagement: React.FC = () => {
   const { data: requests = [], isLoading, refetch } = useGetRequestsQuery({})
-  const [approveRequest] = useApproveRequestMutation()
   const [rejectRequest] = useRejectRequestMutation()
   const { user } = useAppSelector((state) => state.auth)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedRequest, setSelectedRequest] = useState<any>(null)
-  const [actionModal, setActionModal] = useState<'approve' | 'reject' | 'view' | null>(null)
+  const [actionModal, setActionModal] = useState<'reject' | 'view' | null>(null)
   const [approvalModalOpen, setApprovalModalOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -231,43 +208,6 @@ const RequestManagement: React.FC = () => {
     pending: filteredRequests.filter((req: any) => req.status === 'pending').length,
     approved: filteredRequests.filter((req: any) => req.status === 'approved').length,
     rejected: filteredRequests.filter((req: any) => req.status === 'rejected').length
-  }
-
-  const handleApprove = async (data: any) => {
-    setIsProcessing(true)
-    try {
-      const assetName = selectedRequest?.itemtype || 'Unknown Asset'
-      const requestId = data.requestId
-
-      console.log('✅ APPROVAL ACTION:', {
-        assetName,
-        quantityApproved: data.quantityToIssue,
-        employee: selectedRequest?.employeename,
-        requestId
-      })
-
-      // Backend's approveRequest handles everything: request approval + item issuance + transaction
-      // No need to call issueItem separately
-      await approveRequest({
-        id: requestId,
-        remarks: data.remarks,
-        approvedQuantity: data.quantityToIssue,
-        inventoryItemId: undefined // Let backend auto-allocate based on itemtype
-      }).unwrap()
-
-      console.log(`✅ Request approved and asset issued: ${assetName} to ${selectedRequest?.employeename}`)
-
-      await refetch()
-      setActionModal(null)
-      setSelectedRequest(null)
-    } catch (error: any) {
-      console.error('❌ Error in approval process:', error)
-      // Show user-friendly error message
-      const errorMessage = error?.data?.message || error?.message || 'Failed to approve request'
-      alert(`Error: ${errorMessage}`)
-    } finally {
-      setIsProcessing(false)
-    }
   }
 
   const handleReject = async (data: any) => {
@@ -520,7 +460,7 @@ const RequestManagement: React.FC = () => {
           }}
           request={selectedRequest}
           action={actionModal!}
-          onSubmit={actionModal === 'approve' ? handleApprove : handleReject}
+          onSubmit={handleReject}
           isLoading={isProcessing}
         />
       )}

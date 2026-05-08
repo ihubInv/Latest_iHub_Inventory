@@ -66,7 +66,7 @@ const EmployeeIssuedItems: React.FC = () => {
       // Parse purpose from description as fallback (for backward compatibility)
       const description = item.description || '';
       const purposeMatch = description.match(/PURPOSE: (.+)/);
-      const purpose = purposeMatch ? purposeMatch[1] : 'Direct Issue';
+      const purpose = purposeMatch ? purposeMatch[1] : 'Assigned asset';
       
       const daysSinceIssued = issueDate ? 
         Math.floor((Date.now() - new Date(issueDate).getTime()) / (1000 * 60 * 60 * 24)) : 0;
@@ -149,27 +149,6 @@ const EmployeeIssuedItems: React.FC = () => {
       Math.round(myIssuedItems.reduce((sum, item) => sum + item.daysOut, 0) / myIssuedItems.length) : 0
   };
 
-  // Temporary function to test issuing an item
-  const testIssueItem = async () => {
-    const availableItems = inventoryItems?.filter((item: any) => item.status === 'available');
-    if (availableItems.length > 0) {
-      const testItem = availableItems[0];
-      console.log('🧪 Testing issue of item:', testItem);
-      
-      // This would normally be done through the approval process
-      // For now, just log what would happen
-      console.log('Would issue:', {
-        itemId: testItem.id,
-        itemName: testItem.assetname,
-        issuedTo: user?.name,
-        issuedBy: 'Test Admin',
-        issuedDate: new Date().toISOString()
-      });
-    } else {
-      console.log('❌ No available items to test with');
-    }
-  };
-
   if (isLoading) {
     return <AttractiveLoader message="Loading your issued items..." variant="fullscreen" />;
   }
@@ -181,15 +160,6 @@ const EmployeeIssuedItems: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My Issued Items</h1>
           <p className="mt-1 text-gray-600">Items currently issued to you</p>
-        </div>
-        <div className="flex items-center space-x-4">
-          {/* Temporary test button */}
-          <button
-            onClick={testIssueItem}
-            className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-          >
-            🧪 Test Issue Item
-          </button>
         </div>
       </div>
 

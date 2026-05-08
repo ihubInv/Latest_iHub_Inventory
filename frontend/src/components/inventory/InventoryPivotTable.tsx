@@ -3,7 +3,7 @@ import { useGetInventoryItemsQuery } from '../../store/api';
 import { Download, Filter, RotateCcw, Table, BarChart3, PieChart, TrendingUp, FileSpreadsheet, FileText, Image, Eye, Calendar, Sliders, Bookmark, Thermometer } from 'lucide-react';
 import AttractiveDropdown from '../common/AttractiveDropdown';
 import DateRangePicker from '../common/DateRangePicker';
-import { PivotBarChart, PivotPieChart, PivotLineChart, PivotHeatmap } from '../charts/ChartComponents';
+import { PivotBarChart, PivotPieChart, PivotLineChart, PivotHeatmap } from '../charts';
 import * as XLSX from 'xlsx';
 import { createAttractiveExcelFile, createAttractiveCSV } from '../../utils/enhancedExport';
 

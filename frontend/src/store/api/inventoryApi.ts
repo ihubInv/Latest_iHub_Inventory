@@ -114,17 +114,6 @@ export const inventoryApi = baseApi.injectEndpoints({
       query: () => '/inventory/stats',
       providesTags: ['InventoryItem'],
     }),
-    issueItem: builder.mutation<
-      InventoryItemResponse,
-      { id: string; issuedTo: string; expectedReturnDate?: string; purpose?: string; notes?: string }
-    >({
-      query: ({ id, ...data }) => ({
-        url: `/inventory/${id}/issue`,
-        method: 'POST',
-        body: data,
-      }),
-      invalidatesTags: ['InventoryItem'],
-    }),
     returnItem: builder.mutation<
       InventoryItemResponse,
       { id: string; condition?: string; notes?: string }
@@ -196,7 +185,6 @@ export const {
   useGetLowStockItemsQuery,
   useGetIssuedItemsQuery,
   useGetInventoryStatsQuery,
-  useIssueItemMutation,
   useReturnItemMutation,
   useGetItemTransactionsQuery,
   useBulkUpdateInventoryMutation,

@@ -17,7 +17,7 @@ import {
 } from '../../store/api';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import DateRangePicker from '../common/DateRangePicker';
-import { CategoryDistributionChart } from '../charts/ChartComponents';
+import { CategoryDistributionChart } from '../charts';
 import CategoryTypeDropdown from '../common/CategoryTypeDropdown';
 import FilterDropdown, { categoryTypeFilters, statusFilters } from '../common/FilterDropdown';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';

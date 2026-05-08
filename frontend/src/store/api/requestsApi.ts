@@ -5,14 +5,13 @@ export interface RequestsResponse extends ApiResponse<Request[]> {}
 
 export interface RequestResponse extends ApiResponse<Request> {}
 
+/** Shape of GET /api/requests/stats `data` (see backend getRequestStats) */
 export interface RequestStats {
-  totalRequests: number
-  pendingRequests: number
-  approvedRequests: number
-  rejectedRequests: number
-  byStatus: Array<{ _id: string; count: number }>
-  byPriority: Array<{ _id: string; count: number }>
-  byDepartment: Array<{ _id: string; count: number }>
+  total: number
+  pending: number
+  approved: number
+  rejected: number
+  byStatus: Array<{ _id: string; count: number; totalQuantity?: number }>
 }
 
 export const requestsApi = baseApi.injectEndpoints({

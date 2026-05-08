@@ -164,7 +164,7 @@ const RequestApprovalModal: React.FC<RequestApprovalModalProps> = ({
             issuedById: user?.id || 'unknown',
             issuedDate: new Date().toISOString(),
             requestId: request.id,
-            purpose: request.purpose || 'Direct Issue',
+            purpose: request.purpose || 'Approved request',
             expectedReturnDate: request.expectedreturndate ? new Date(request.expectedreturndate).toISOString() : undefined,
             notes: reason,
             previousStatus: 'available',

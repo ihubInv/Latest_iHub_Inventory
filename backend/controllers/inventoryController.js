@@ -395,71 +395,6 @@ const deleteInventoryItem = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Issue inventory item
-// @route   POST /api/inventory/:id/issue
-// @access  Private (Admin/Stock Manager)
-const issueInventoryItem = asyncHandler(async (req, res) => {
-  const { issuedTo, expectedReturnDate, purpose, notes } = req.body;
-
-  const inventoryItem = await InventoryItem.findById(req.params.id);
-
-  if (!inventoryItem) {
-    return res.status(404).json({
-      success: false,
-      message: 'Inventory item not found'
-    });
-  }
-
-  if (inventoryItem.balancequantityinstock <= 0) {
-    return res.status(400).json({
-      success: false,
-      message: 'Item is out of stock'
-    });
-  }
-
-  if (inventoryItem.status === 'issued') {
-    return res.status(400).json({
-      success: false,
-      message: 'Item is already issued'
-    });
-  }
-
-  // Store the previous quantity before issuing
-  const previousQuantity = inventoryItem.balancequantityinstock;
-
-  // Issue the item
-  const updatedItem = await inventoryItem.issueItem(issuedTo, req.user.name, expectedReturnDate);
-
-  // Create transaction record
-  const transaction = await InventoryTransaction.create({
-    inventoryitemid: inventoryItem._id,
-    transactiontype: 'issue',
-    quantity: 1,
-    previousquantity: previousQuantity,
-    newquantity: updatedItem.balancequantityinstock,
-    issuedto: req.user.id, // Assuming issuedTo is user ID
-    issuedby: req.user.id,
-    purpose: purpose || 'Direct Issue',
-    notes: notes || 'Item issued to employee',
-    expectedreturndate: expectedReturnDate,
-    status: 'completed'
-  });
-
-  const populatedItem = await InventoryItem.findById(inventoryItem._id)
-    .populate('assetcategoryid', 'name type')
-    .populate('assetid', 'name description')
-    .populate('createdby', 'name email');
-
-  res.json({
-    success: true,
-    message: 'Item issued successfully',
-    data: {
-      item: populatedItem,
-      transaction
-    }
-  });
-});
-
 // @desc    Return inventory item
 // @route   POST /api/inventory/:id/return
 // @access  Private (Admin/Stock Manager)
@@ -789,7 +724,6 @@ module.exports = {
   createInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
-  issueInventoryItem,
   returnInventoryItem,
   getAvailableInventoryItems,
   getLowStockItems,

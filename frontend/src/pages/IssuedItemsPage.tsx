@@ -11,7 +11,7 @@ import ReturnAssetModal from '../components/requests/ReturnAssetModal'
 
 const IssuedItemsPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth)
-  const [activeTab, setActiveTab] = useState<'direct' | 'requested'>('direct')
+  const [activeTab, setActiveTab] = useState<'issued' | 'requested'>('issued')
   const [returnModalOpen, setReturnModalOpen] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<any>(null)
 
@@ -55,13 +55,12 @@ const IssuedItemsPage: React.FC = () => {
     )
   }
 
-  // Get issued items directly assigned to this employee (same logic as EmployeeDashboard)
-  const issuedItems = React.useMemo(() => {
+  const issuedToMeItems = React.useMemo(() => {
     const allItems = inventoryItemsResponse?.data || []
     return allItems.filter(item => 
       item.status === 'issued' && 
       (item.issuedto === user?.name || item.issuedto?.toLowerCase().includes(user?.name?.toLowerCase() || '')) &&
-      !hasApprovedReturnRequest(item.id) // Hide items with approved return requests
+      !hasApprovedReturnRequest(item.id)
     ).map(item => ({
       id: item.id,
       name: item.assetname,
@@ -70,7 +69,7 @@ const IssuedItemsPage: React.FC = () => {
       location: item.locationofitem,
       purpose: item.description?.includes('PURPOSE:') ? 
         item.description.match(/PURPOSE: (.+)/)?.[1] || 'Unknown' : 
-        'Direct Issue',
+        'Approved assignment',
       expectedReturn: item.expectedreturndate,
       value: item.totalcost
     }))
@@ -143,16 +142,16 @@ const IssuedItemsPage: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 mb-6">
           <div className="flex border-b border-gray-200">
             <button
-              onClick={() => setActiveTab('direct')}
+              onClick={() => setActiveTab('issued')}
               className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'direct'
+                activeTab === 'issued'
                   ? 'text-[#0d559e] border-b-2 border-[#0d559e] bg-blue-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               <div className="flex items-center justify-center space-x-2">
                 <Package className="w-5 h-5" />
-                <span>Direct Issued ({issuedItems.length})</span>
+                <span>Issued to me ({issuedToMeItems.length})</span>
               </div>
             </button>
             <button
@@ -172,18 +171,18 @@ const IssuedItemsPage: React.FC = () => {
 
           {/* Content */}
           <div className="p-6">
-            {activeTab === 'direct' ? (
+            {activeTab === 'issued' ? (
               <div>
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Direct Issued Items</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Items issued to me</h3>
                   <p className="text-sm text-gray-600">
-                    Items directly issued to you by Admin or Stock Manager
+                    Physical assets currently assigned to you (issued through the approval workflow).
                   </p>
                 </div>
 
-                {issuedItems.length > 0 ? (
+                {issuedToMeItems.length > 0 ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {issuedItems.map((item, index) => (
+                    {issuedToMeItems.map((item, index) => (
                       <div key={item.id || index} className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center space-x-3">
@@ -192,7 +191,7 @@ const IssuedItemsPage: React.FC = () => {
                             </div>
                             <div>
                               <h4 className="font-semibold text-gray-900">{item.name}</h4>
-                              <p className="text-sm text-gray-600">Direct Issue</p>
+                              <p className="text-sm text-gray-600">Issued assignment</p>
                             </div>
                           </div>
                           <div className="text-right">
@@ -248,9 +247,9 @@ const IssuedItemsPage: React.FC = () => {
                 ) : (
                   <div className="text-center py-12">
                     <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-medium text-gray-900 mb-2">No Direct Issued Items</h3>
+                    <h3 className="text-xl font-medium text-gray-900 mb-2">No issued items yet</h3>
                     <p className="text-gray-500">
-                      You don't have any items directly issued to you yet.
+                      You don't have any physical assets assigned to you right now.
                     </p>
                   </div>
                 )}
@@ -268,7 +267,7 @@ const IssuedItemsPage: React.FC = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {requestItems.map((request, index) => (
                       <div key={request.id || index} className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                        {/* Header - match direct issued card layout */}
+                        {/* Header - match issued-card layout */}
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center space-x-3">
                             <div className="p-2 bg-blue-100 rounded-lg">
@@ -314,7 +313,7 @@ const IssuedItemsPage: React.FC = () => {
                           
                         </div>
 
-                        {/* Footer - purpose and remarks similar to direct footer */}
+                        {/* Footer - purpose and remarks */}
                         <div className="pt-4 border-t border-gray-200">
                           <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
                             <MapPin className="w-4 h-4" />
@@ -333,7 +332,7 @@ const IssuedItemsPage: React.FC = () => {
                             </div>
                           )}
 
-                          {/* Return Asset Button - Same as Direct Issued Items */}
+                          {/* Return Asset Button */}
                           {request.status === 'approved' && (
                             <div className="mt-3">
                               {(() => {
@@ -408,7 +407,7 @@ const IssuedItemsPage: React.FC = () => {
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2">
                 <Package className="w-4 h-4 text-blue-600" />
-                <span>Direct Issued: {issuedItems.length}</span>
+                <span>Issued to me: {issuedToMeItems.length}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4 text-gray-600" />

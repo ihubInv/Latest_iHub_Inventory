@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom'
 import {
   RequestStatusChart,
   MonthlyActivityChart
-} from '../components/charts/ChartComponents'
+} from '../components/charts'
 import {
   ClipboardCheck,
   Clock,
@@ -88,7 +88,7 @@ const EmployeeDashboard: React.FC = () => {
     skip: !user?.id
   })
   
-  // Get issued items directly assigned to this employee
+  // Issued items assigned to this employee (approval workflow / inventory issued state)
   const { data: inventoryItemsResponse, isLoading: inventoryItemsLoading } = useGetInventoryItemsQuery({})
 
   // Dynamic data calculation from employee-specific API sources
@@ -142,13 +142,23 @@ const EmployeeDashboard: React.FC = () => {
   const recentActivityData = React.useMemo(() => {
     const transactions = recentTransactions?.data || []
     return transactions.map(transaction => ({
-      month: formatRelativeDate(transaction.transactionDate),
+      month: formatRelativeDate(
+        transaction.transactionDate ??
+          transaction.transactiondate ??
+          transaction.createdAt ??
+          transaction.createdat ??
+          new Date().toISOString()
+      ),
       count: transaction.quantity || 1,
-      type: transaction.transactionType
+      type:
+        transaction.transactionType ??
+        transaction.transactiontype ??
+        transaction.type ??
+        ''
     }))
   }, [recentTransactions])
 
-  // Get issued items directly assigned to this employee
+  // Issued items assigned to this employee (approval workflow / inventory issued state)
   const issuedToEmployee = React.useMemo(() => {
     const allItems = inventoryItemsResponse?.data || []
     return allItems.filter(item => 
@@ -158,18 +168,27 @@ const EmployeeDashboard: React.FC = () => {
     ).map(item => ({
       id: item.id,
       name: item.assetname,
-      issuedDate: item.issued_date || item.dateofissue,
+      issuedDate: item.issueddate || item.dateofissue,
       issuedBy: item.issuedby,
       location: item.locationofitem,
       purpose: item.description?.includes('PURPOSE:') ? 
         item.description.match(/PURPOSE: (.+)/)?.[1] || 'Unknown' : 
-        'Direct Issue',
+        'Issued assignment',
       expectedReturn: item.expectedreturndate,
       value: item.totalcost
     }))
   }, [inventoryItemsResponse, user?.name, returnRequestsResponse])
 
-  const StatCard = ({ title, value, subtitle, icon, color = 'blue', onClick, isSpecial = false }: {
+  const StatCard = ({
+    title,
+    value,
+    subtitle,
+    icon,
+    color = 'blue',
+    onClick,
+    isSpecial = false,
+    children: statChildren,
+  }: {
     title: string
     value: string | number
     subtitle?: string
@@ -177,6 +196,7 @@ const EmployeeDashboard: React.FC = () => {
     color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'indigo'
     onClick?: () => void
     isSpecial?: boolean
+    children?: React.ReactNode
   }) => {
     const colorClasses = {
       blue: 'bg-blue-500 text-white',
@@ -187,7 +207,7 @@ const EmployeeDashboard: React.FC = () => {
       indigo: 'bg-indigo-500 text-white'
     }
 
-    const CardComponent = ({ children }: { children: React.ReactNode }) => (
+    const cardBody = (
       <div className={`${onClick ? 'cursor-pointer hover:shadow-lg' : ''} bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 h-full flex flex-col transition-all duration-200 ${isSpecial ? 'ring-2 ring-[#0d559e] ring-opacity-20' : ''}`}>
         <div className="p-6 flex-1 flex flex-col">
           <div className="flex items-center mb-4">
@@ -222,16 +242,16 @@ const EmployeeDashboard: React.FC = () => {
             </div>
           )}
         </div>
-        {children}
+        {statChildren ?? null}
       </div>
     )
 
     return onClick ? (
-      <button onClick={onClick} className="w-full h-full">
-        <CardComponent />
+      <button type="button" onClick={onClick} className="w-full h-full text-left">
+        {cardBody}
       </button>
     ) : (
-      <CardComponent />
+      cardBody
     )
   }
 

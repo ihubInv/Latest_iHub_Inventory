@@ -116,6 +116,8 @@ export interface TransactionOverview {
 }
 
 export interface UserActivity {
+  /** Optional monthly buckets for dashboards (employee activity chart) */
+  activityOverTime?: Array<{ month?: string; count?: number; type?: string }>
   recentLogins: Array<{
     _id: string
     userName: string
