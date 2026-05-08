@@ -58,11 +58,13 @@ const seedDatabase = async () => {
       console.error('⚠️  Warning: Error creating indexes:', error.message);
     }
 
-    // Create admin user
+    // Create admin user (must match backend/.env ADMIN_EMAIL / ADMIN_PASSWORD when seeding)
+    const adminEmail = (process.env.ADMIN_EMAIL || 'avnish@ihubiitmandi.in').trim();
+    const adminPassword = (process.env.ADMIN_PASSWORD || 'avnish@123').trim();
     const adminUser = await User.create({
-      email: 'avnish@ihubiitmandi.in',
+      email: adminEmail,
       name: 'System Administrator',
-      password: 'avnish@',
+      password: adminPassword,
       role: 'admin',
       department: 'IT',
       isactive: true
@@ -187,7 +189,7 @@ const seedDatabase = async () => {
     const employee = await User.create({
       email: 'rohit@ihubiitmandi.in',
       name: 'Rohit Kumar',
-      password: 'rohit@',
+      password: 'rohit@123',
       role: 'employee',
       department: 'IT Department',
       isactive: true

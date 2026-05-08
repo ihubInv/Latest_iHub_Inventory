@@ -164,7 +164,7 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5002;
 const HOST = process.env.HOST || '0.0.0.0'; // Listen on all interfaces
 
 const server = app.listen(PORT, HOST, () => {
