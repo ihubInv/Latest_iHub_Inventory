@@ -1724,6 +1724,27 @@ const handleFile = (file?: File) => {
                         </div>
 
                         <div>
+                          <FinancialYearDropdown
+                            label="Financial Year *"
+                            value={formData.financialyear}
+                            onChange={(value) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                financialyear: value,
+                              }));
+                            }}
+                            required
+                            placeholder="Select Financial Year"
+                          />
+                          {idx === 0 && (
+                            <p className="mt-1 text-xs text-gray-500">
+                              Financial Year runs from 1st April to 31st March • Applies to all items • Currently:{' '}
+                              <span className="font-semibold text-blue-600">{formData.financialyear || 'Not selected'}</span>
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
                           <label className="block mb-2 text-sm font-medium text-gray-700">Make/Model</label>
                           <input
                             type="text"
@@ -2110,6 +2131,10 @@ const handleFile = (file?: File) => {
                     <button
                       type="button"
                       onClick={async () => {
+                        if (!formData.financialyear || formData.financialyear.trim() === '') {
+                          toast.error('Financial Year is required');
+                          return;
+                        }
                         // Validate all items in multiple items form
                         const validationErrors: Array<{ itemIndex: number; fields: string[] }> = [];
                         
