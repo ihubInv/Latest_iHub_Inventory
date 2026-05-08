@@ -222,8 +222,8 @@ const RegisterForm: React.FC = () => {
                   className="h-11 sm:h-12 px-3 sm:px-4 text-sm sm:text-base border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-[#0d559e] focus:ring-2 focus:ring-[#0d559e]/20 transition-all duration-200 w-full bg-white"
                 >
                   <option value="employee">Employee</option>
-                  <option value="stock-manager">Stock Manager</option>
-                  <option value="admin">Administrator</option>
+                  {/* <option value="stock-manager">Stock Manager</option>
+                  <option value="admin">Administrator</option> */}
                 </select>
               </div>
               <div>

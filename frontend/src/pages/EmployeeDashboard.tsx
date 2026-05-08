@@ -255,7 +255,7 @@ const EmployeeDashboard: React.FC = () => {
             <div className="flex-1">
               <h3 className="text-sm font-medium text-yellow-800">Dashboard Data Unavailable</h3>
               <p className="text-sm text-yellow-700">
-                Some dashboard statistics are currently unavailable. Charts are showing demo data. Please refresh or contact support if this persists.
+                Some dashboard statistics are currently unavailable. Showing only live values from available APIs. Please refresh or contact support if this persists.
               </p>
             </div>
             <button 

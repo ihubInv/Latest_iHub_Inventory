@@ -36,12 +36,21 @@ export interface InventoryOverview {
     totalCost: number
     createdAt: string
   }>
+  itemsNeedingAttention: Array<{
+    _id: string
+    assetname?: string
+    status?: string
+    balancequantityinstock?: number
+    minimumstocklevel?: number
+    conditionofasset?: string
+  }>
   topItems: Array<{
     _id: string
     assetName: string
     totalQuantity: number
     totalValue: number
-    issuedQuantity: number
+    issuedQuantity?: number
+    count?: number
   }>
 }
 
@@ -61,6 +70,13 @@ export interface RequestOverview {
     status: string
     requestedBy: string
     submittedAt: string
+  }>
+  overdueRequests: Array<{
+    _id: string
+    status: string
+    submittedat?: string
+    submittedAt?: string
+    employeename?: string
   }>
   topRequesters: Array<{
     _id: string

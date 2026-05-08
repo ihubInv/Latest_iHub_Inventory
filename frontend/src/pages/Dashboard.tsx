@@ -21,6 +21,17 @@ const Dashboard: React.FC = () => {
   const { data: requestOverview, isLoading: requestLoading } = useGetRequestOverviewQuery()
   const { data: transactionOverview, isLoading: transactionLoading } = useGetTransactionOverviewQuery()
   const { data: userActivity, isLoading: userActivityLoading } = useGetUserActivityQuery()
+  const requestMonthlyCounts = React.useMemo(() => {
+    const counts = new Map<string, number>()
+    requestOverview?.data?.recentRequests?.forEach((request) => {
+      if (!request?.submittedAt) return
+      const date = new Date(request.submittedAt)
+      if (Number.isNaN(date.getTime())) return
+      const month = date.toLocaleString('default', { month: 'short' })
+      counts.set(month, (counts.get(month) || 0) + 1)
+    })
+    return counts
+  }, [requestOverview])
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -211,7 +222,9 @@ const Dashboard: React.FC = () => {
                   data={{
                     months: transactionOverview.data.monthlyTrends.map(trend => trend.month),
                     itemsAdded: transactionOverview.data.monthlyTrends.map(trend => trend.count),
-                    requestsSubmitted: new Array(transactionOverview.data.monthlyTrends.length).fill(Math.floor(Math.random() * 20) + 5) // Mock data until we have real request trends
+                    requestsSubmitted: transactionOverview.data.monthlyTrends.map(
+                      trend => requestMonthlyCounts.get(trend.month) || 0
+                    )
                   }} 
                 />
               </div>

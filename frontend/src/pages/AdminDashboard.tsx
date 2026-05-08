@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { 
   Users, 
   BarChart3, 
@@ -21,9 +21,12 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js'
-import { Line, Bar, Doughnut } from 'react-chartjs-2'
+import { Bar, Doughnut } from 'react-chartjs-2'
 import { useGetDashboardStatsQuery } from '../store/api/dashboardApi'
-import { useGetInventoryStatsQuery } from '../store/api/inventoryApi'
+import { useGetInventoryStatsQuery, useGetInventoryItemsQuery } from '../store/api/inventoryApi'
+import { buildAssetChartRows } from '../utils/buildAssetChartData'
+import { useGetInventoryOverviewQuery, useGetRequestOverviewQuery, useGetTransactionOverviewQuery } from '../store/api/dashboardApi'
+import { useGetActiveCategoriesQuery } from '../store/api/categoriesApi'
 
 ChartJS.register(
   CategoryScale,
@@ -39,47 +42,53 @@ ChartJS.register(
 const AdminDashboard: React.FC = () => {
   const { data: inventoryStats, isLoading: loadingInventoryStats } = useGetInventoryStatsQuery()
   const { data: dashboardStats, isLoading: loadingDashboardStats } = useGetDashboardStatsQuery()
-  
-  // State for month and year filters
-  const currentDate = new Date()
-  const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth() + 1)
-  const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear())
+  const { data: inventoryOverview, isLoading: loadingInventoryOverview } = useGetInventoryOverviewQuery()
+  const { data: requestOverview, isLoading: loadingRequestOverview } = useGetRequestOverviewQuery()
+  const { isLoading: loadingTransactionOverview } = useGetTransactionOverviewQuery()
+  const { data: activeCategories } = useGetActiveCategoriesQuery()
+  const { data: inventoryListResp, isLoading: loadingInventoryList } = useGetInventoryItemsQuery({
+    page: 1,
+    limit: 10000,
+  })
   
   const totalItems = inventoryStats?.data?.totalItems ?? 0
   const totalValue = inventoryStats?.data?.totalValue ?? 0
   const issuedItems = (((inventoryStats?.data as any)?.byStatus) || []).find((s: any) => s._id === 'issued')?.count ?? 0
   const totalCategories = (dashboardStats?.data as any)?.overview?.totalCategories ?? (dashboardStats?.data as any)?.totalCategories ?? 0
   const currencyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
-  
-  // Mock data for monthly price distribution by category
-  // In production, this should come from an API based on selectedMonth and selectedYear
-  const monthlyPriceData = {
-    labels: ['Laptops', 'Monitors', 'Accessories', 'Furniture', 'Networking'],
-    datasets: [
-      {
-        data: [450000, 280000, 125000, 95000, 50000],
-        backgroundColor: [
-          '#0d559e',
-          '#1a6bb8',
-          '#2c7bc7',
-          '#5fa4da',
-          '#9bc5ea',
-        ],
-        borderWidth: 2,
-        borderColor: '#ffffff',
-      },
-    ],
+  const requestTotals = {
+    pending: requestOverview?.data?.pendingRequests || 0,
+    approved: requestOverview?.data?.approvedRequests || 0,
+    rejected: requestOverview?.data?.rejectedRequests || 0,
   }
-  
-  const totalMonthlyPrice = monthlyPriceData.datasets[0].data.reduce((sum, val) => sum + val, 0)
-  
-  // Generate year options (current year and 5 years back)
-  const yearOptions = Array.from({ length: 6 }, (_, i) => currentDate.getFullYear() - i)
-  
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ]
+  const totalRequests = requestTotals.pending + requestTotals.approved + requestTotals.rejected
+  const dashboardLoading =
+    loadingInventoryStats ||
+    loadingDashboardStats ||
+    loadingInventoryOverview ||
+    loadingRequestOverview ||
+    loadingTransactionOverview ||
+    loadingInventoryList
+  const categoryAssetNames: string[] = (activeCategories?.data || [])
+    .flatMap((category: any) => category?.assetnames || [])
+    .map((asset: any) => {
+      if (!asset) return ''
+      if (typeof asset === 'string') return asset.trim()
+      if (asset.isactive === false) return ''
+      return String(asset.name || asset.assetname || '').trim()
+    })
+    .filter((name: string) => Boolean(name))
+  const uniqueCategoryAssetNames = Array.from(new Set(categoryAssetNames))
+  const inventoryRows = inventoryListResp?.data || []
+  const assetChartRows = buildAssetChartRows(inventoryRows as any[], uniqueCategoryAssetNames)
+  const trendLabels = assetChartRows.map((row) => row.asset)
+  const trendCounts = assetChartRows.map((row) => row.count)
+  const categorySource = (inventoryOverview?.data?.byCategory && inventoryOverview.data.byCategory.length > 0)
+    ? inventoryOverview.data.byCategory
+    : (((dashboardStats?.data as any)?.inventory?.topCategories) || [])
+  const categoryLabels = categorySource.map((row: any) => row.categoryName || row._id || 'Other')
+  const categoryCounts = categorySource.map((row: any) => row.count || 0)
+  const statusChartData = [requestTotals.pending, requestTotals.approved, requestTotals.rejected]
   
   return (
     <div className="space-y-6">
@@ -88,7 +97,7 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between">
           <div>
             <div className="text-sm text-gray-600">Total Inventory</div>
-            <div className="text-2xl font-bold text-gray-900">{loadingInventoryStats || loadingDashboardStats ? '—' : totalItems}</div>
+            <div className="text-2xl font-bold text-gray-900">{dashboardLoading ? '—' : totalItems}</div>
           </div>
           <div className="p-3 rounded-lg bg-[#0d559e]/10">
             <Package className="w-6 h-6 text-[#0d559e]" />
@@ -97,7 +106,7 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between">
           <div>
             <div className="text-sm text-gray-600">Issued Items</div>
-            <div className="text-2xl font-bold text-gray-900">{loadingInventoryStats || loadingDashboardStats ? '—' : issuedItems}</div>
+            <div className="text-2xl font-bold text-gray-900">{dashboardLoading ? '—' : issuedItems}</div>
           </div>
           <div className="p-3 rounded-lg bg-emerald-100">
             <CheckCircle className="w-6 h-6 text-emerald-600" />
@@ -106,7 +115,7 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between">
           <div>
             <div className="text-sm text-gray-600">Total Inventory Value</div>
-            <div className="text-2xl font-bold text-gray-900">{loadingInventoryStats || loadingDashboardStats ? '—' : currencyFormatter.format(totalValue)}</div>
+            <div className="text-2xl font-bold text-gray-900">{dashboardLoading ? '—' : currencyFormatter.format(totalValue)}</div>
           </div>
           <div className="p-3 rounded-lg bg-amber-100">
             <BarChart3 className="w-6 h-6 text-amber-600" />
@@ -115,7 +124,7 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between">
           <div>
             <div className="text-sm text-gray-600">Total Categories</div>
-            <div className="text-2xl font-bold text-gray-900">{loadingInventoryStats || loadingDashboardStats ? '—' : totalCategories}</div>
+            <div className="text-2xl font-bold text-gray-900">{dashboardLoading ? '—' : totalCategories}</div>
           </div>
           <div className="p-3 rounded-lg bg-indigo-100">
             <ClipboardList className="w-6 h-6 text-indigo-600" />
@@ -129,153 +138,98 @@ const AdminDashboard: React.FC = () => {
           <h2 className="text-xl font-bold text-[#0d559e]">Analytics Overview</h2>
         </div>
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
-          {/* Line Chart */}
-          <div className="p-4 rounded-lg border border-gray-200 bg-gradient-to-br from-[#0d559e]/5 to-[#1a6bb8]/5 h-64 sm:h-72">
-            <div className="text-sm font-medium text-gray-700 mb-2">Issues over last 6 months</div>
-            <div className="w-full h-[calc(100%-1.75rem)]">{/* leave space for title */}
-            <Line
-              data={{
-                labels: ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
-                datasets: [
-                  {
-                    label: 'Direct Issued',
-                    data: [12, 19, 15, 22, 18, 24],
-                    borderColor: '#0d559e',
-                    backgroundColor: 'rgba(13,85,158,0.2)',
-                    tension: 0.35,
-                    fill: true,
-                  },
-                  {
-                    label: 'Via Requests',
-                    data: [8, 11, 9, 10, 12, 14],
-                    borderColor: '#2c7bc7',
-                    backgroundColor: 'rgba(44,123,199,0.18)',
-                    tension: 0.35,
-                    fill: true,
-                  },
-                ],
-              }}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: { padding: 8 },
-                plugins: { legend: { display: true, position: 'bottom' } },
-                scales: {
-                  x: { grid: { color: 'rgba(0,0,0,0.05)' } },
-                  y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
-                },
-              }}
-            />
+          <div className="p-4 rounded-lg border border-gray-200 bg-gradient-to-br from-[#0d559e]/5 to-[#1a6bb8]/5 h-72 sm:h-80 flex flex-col">
+            <div className="text-sm font-medium text-gray-700 mb-2">
+              Assets and quantity count
+              {trendLabels.length > 0 && (
+                <span className="ml-2 text-xs text-gray-500">({trendLabels.length} assets)</span>
+              )}
             </div>
-          </div>
-
-          {/* Bar Chart */}
-          <div className="p-4 rounded-lg border border-gray-200 bg-gradient-to-br from-[#0d559e]/5 to-[#1a6bb8]/5 h-64 sm:h-72">
-            <div className="text-sm font-medium text-gray-700 mb-2">Category distribution</div>
-            <div className="w-full h-[calc(100%-1.75rem)]">
-            <Bar
-              data={{
-                labels: ['Laptops', 'Monitors', 'Accessories', 'Furniture', 'Networking'],
-                datasets: [
-                  {
-                    label: 'Total Items',
-                    data: [120, 84, 150, 42, 33],
-                    backgroundColor: ['#0d559e', '#1a6bb8', '#2c7bc7', '#5fa4da', '#9bc5ea'],
-                    borderRadius: 6,
-                  },
-                ],
-              }}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: { padding: 8 },
-                plugins: { legend: { display: false } },
-                scales: {
-                  x: { grid: { color: 'rgba(0,0,0,0.05)' } },
-                  y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
-                },
-              }}
-            />
-            </div>
-          </div>
-
-          {/* Donut Chart - Monthly Price */}
-          <div className="p-4 rounded-lg border border-gray-200 bg-gradient-to-br from-[#0d559e]/5 to-[#1a6bb8]/5 h-64 sm:h-72 flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-medium text-gray-700">Monthly Price Distribution</div>
-            </div>
-            
-            {/* Month and Year Filters */}
-            <div className="flex gap-2 mb-3">
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#0d559e]"
-              >
-                {monthNames.map((month, index) => (
-                  <option key={index} value={index + 1}>
-                    {month}
-                  </option>
-                ))}
-              </select>
-              
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#0d559e]"
-              >
-                {yearOptions.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Total Monthly Price */}
-            <div className="text-center mb-2">
-              <div className="text-xs text-gray-600">Total Value</div>
-              <div className="text-lg font-bold text-[#0d559e]">
-                {currencyFormatter.format(totalMonthlyPrice)}
-              </div>
-            </div>
-
-            {/* Donut Chart */}
-            <div className="flex-1 flex items-center justify-center min-h-0">
-              <div className="w-full h-full max-h-[140px] flex items-center justify-center">
-                <Doughnut
-                  data={monthlyPriceData}
+            <div className="w-full flex-1 overflow-y-auto">
+              <div style={{ height: Math.max(220, trendLabels.length * 24) + 'px', minHeight: '100%' }}>
+                <Bar
+                  data={{
+                    labels: trendLabels.length ? trendLabels : ['No Data'],
+                    datasets: [{
+                      label: 'Asset Count',
+                      data: trendCounts.length ? trendCounts : [0],
+                      backgroundColor: 'rgba(13,85,158,0.6)',
+                      borderColor: '#0d559e',
+                      borderWidth: 1,
+                    }]
+                  }}
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
+                    indexAxis: 'y',
                     plugins: {
-                      legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: {
-                          boxWidth: 12,
-                          padding: 8,
-                          font: { size: 10 },
-                        },
+                      legend: { display: true, position: 'bottom' },
+                      tooltip: { enabled: true },
+                    },
+                    scales: {
+                      x: {
+                        beginAtZero: true,
+                        suggestedMax: Math.max(...(trendCounts.length ? trendCounts : [0]), 1),
+                        ticks: { precision: 0 },
                       },
-                      tooltip: {
-                        callbacks: {
-                          label: function(context) {
-                            const label = context.label || '';
-                            const value = context.parsed || 0;
-                            return `${label}: ${currencyFormatter.format(value)}`;
-                          }
+                      y: {
+                        ticks: {
+                          autoSkip: false,
+                          font: { size: 10 }
                         }
                       }
-                    },
-                    cutout: '60%',
+                    }
                   }}
                 />
               </div>
             </div>
           </div>
 
-          
+          <div className="p-4 rounded-lg border border-gray-200 bg-gradient-to-br from-[#0d559e]/5 to-[#1a6bb8]/5 h-64 sm:h-72">
+            <div className="text-sm font-medium text-gray-700 mb-2">Top categories</div>
+            <div className="w-full h-[calc(100%-1.75rem)]">
+              <Bar
+                data={{
+                  labels: categoryLabels.length ? categoryLabels : ['No Data'],
+                  datasets: [{
+                    label: 'Items',
+                    data: categoryCounts.length ? categoryCounts : [0],
+                    backgroundColor: ['#0d559e', '#1a6bb8', '#2c7bc7', '#5fa4da', '#9bc5ea'],
+                    borderRadius: 6,
+                  }]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { y: { beginAtZero: true } }
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="p-4 rounded-lg border border-gray-200 bg-gradient-to-br from-[#0d559e]/5 to-[#1a6bb8]/5 h-64 sm:h-72 flex flex-col">
+            <div className="text-sm font-medium text-gray-700 mb-2">Request status distribution</div>
+            <div className="flex-1 min-h-0">
+              <Doughnut
+                data={{
+                  labels: ['Pending', 'Approved', 'Rejected'],
+                  datasets: [{
+                    data: statusChartData.some(v => v > 0) ? statusChartData : [1, 0, 0],
+                    backgroundColor: ['#f59e0b', '#10b981', '#ef4444'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                  }]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: 'bottom' } },
+                  cutout: '60%',
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
       
@@ -297,7 +251,7 @@ const AdminDashboard: React.FC = () => {
               <Clock className="w-4 h-4 text-yellow-600" />
               <span className="text-sm font-medium text-gray-600">Pending</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900">12</div>
+              <div className="text-2xl font-bold text-gray-900">{dashboardLoading ? '—' : requestTotals.pending}</div>
           </div>
           
           <div className="bg-white p-4 rounded-lg border border-green-200">
@@ -305,7 +259,7 @@ const AdminDashboard: React.FC = () => {
               <CheckCircle className="w-4 h-4 text-green-600" />
               <span className="text-sm font-medium text-gray-600">Approved</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900">45</div>
+              <div className="text-2xl font-bold text-gray-900">{dashboardLoading ? '—' : requestTotals.approved}</div>
           </div>
           
           <div className="bg-white p-4 rounded-lg border border-green-200">
@@ -313,7 +267,7 @@ const AdminDashboard: React.FC = () => {
               <XCircle className="w-4 h-4 text-red-600" />
               <span className="text-sm font-medium text-gray-600">Rejected</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900">8</div>
+              <div className="text-2xl font-bold text-gray-900">{dashboardLoading ? '—' : requestTotals.rejected}</div>
           </div>
           
           <div className="bg-white p-4 rounded-lg border border-green-200">
@@ -321,7 +275,7 @@ const AdminDashboard: React.FC = () => {
               <BarChart3 className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-medium text-gray-600">Total</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900">65</div>
+              <div className="text-2xl font-bold text-gray-900">{dashboardLoading ? '—' : totalRequests}</div>
           </div>
         </div>
         

@@ -200,42 +200,118 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 // @route   GET /api/dashboard/inventory-overview
 // @access  Private
 const getInventoryOverview = asyncHandler(async (req, res) => {
-  // Get total inventory value
-  const totalValue = await InventoryItem.aggregate([
-    {
-      $group: {
-        _id: null,
-        total: { $sum: '$totalcost' }
+  // Get key totals used by dashboard cards/charts
+  const [totalsAgg, byStatusRaw, byCategoryRaw, byLocationRaw, byCondition, topItems, categoryAssets] = await Promise.all([
+    InventoryItem.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalItems: { $sum: 1 },
+          totalValue: { $sum: { $ifNull: ['$totalcost', 0] } },
+          availableItems: { $sum: { $cond: [{ $eq: ['$status', 'available'] }, 1, 0] } },
+          issuedItems: { $sum: { $cond: [{ $eq: ['$status', 'issued'] }, 1, 0] } }
+        }
       }
-    }
-  ]);
-
-  // Get inventory by condition
-  const byCondition = await InventoryItem.aggregate([
-    {
-      $group: {
-        _id: '$conditionofasset',
-        count: { $sum: 1 },
-        totalValue: { $sum: '$totalcost' }
+    ]),
+    InventoryItem.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          value: { $sum: { $ifNull: ['$totalcost', 0] } }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]),
+    Category.aggregate([
+      {
+        $lookup: {
+          from: 'inventoryitems',
+          let: { categoryId: '$_id', categoryName: '$name' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $or: [
+                    { $eq: ['$assetcategoryid', '$$categoryId'] },
+                    { $eq: ['$assetcategory', '$$categoryName'] }
+                  ]
+                }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                count: { $sum: 1 },
+                value: { $sum: { $ifNull: ['$totalcost', 0] } }
+              }
+            }
+          ],
+          as: 'inventoryStats'
+        }
+      },
+      {
+        $project: {
+          _id: '$name',
+          categoryName: '$name',
+          count: { $ifNull: [{ $arrayElemAt: ['$inventoryStats.count', 0] }, 0] },
+          value: { $ifNull: [{ $arrayElemAt: ['$inventoryStats.value', 0] }, 0] }
+        }
+      },
+      { $sort: { categoryName: 1 } }
+    ]),
+    InventoryItem.aggregate([
+      {
+        $group: {
+          _id: '$locationofitem',
+          count: { $sum: 1 },
+          value: { $sum: { $ifNull: ['$totalcost', 0] } }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+      {
+        $project: {
+          _id: 1,
+          locationName: { $ifNull: ['$_id', 'Unknown'] },
+          count: 1,
+          value: 1
+        }
       }
-    }
-  ]);
-
-  // Get inventory by location
-  const byLocation = await InventoryItem.aggregate([
-    {
-      $group: {
-        _id: '$locationofitem',
-        count: { $sum: 1 },
-        totalValue: { $sum: '$totalcost' }
+    ]),
+    InventoryItem.aggregate([
+      {
+        $group: {
+          _id: '$conditionofasset',
+          count: { $sum: 1 },
+          totalValue: { $sum: '$totalcost' }
+        }
       }
-    },
-    {
-      $sort: { count: -1 }
-    },
-    {
-      $limit: 10
-    }
+    ]),
+    InventoryItem.aggregate([
+      {
+        $group: {
+          _id: '$assetname',
+          totalQuantity: { $sum: { $ifNull: ['$balancequantityinstock', 0] } },
+          count: { $sum: 1 },
+          totalValue: { $sum: { $ifNull: ['$totalcost', 0] } }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 20 },
+      {
+        $project: {
+          _id: 1,
+          assetName: { $ifNull: ['$_id', 'Unknown Asset'] },
+          totalQuantity: 1,
+          count: 1,
+          totalValue: 1
+        }
+      }
+    ]),
+    Category.find({ isactive: true })
+      .select('assetnames')
+      .lean()
   ]);
 
   // Get recent additions (last 30 days)
@@ -262,12 +338,65 @@ const getInventoryOverview = asyncHandler(async (req, res) => {
     .sort({ balancequantityinstock: 1 })
     .limit(10);
 
+  const lowStockItems = await InventoryItem.countDocuments({
+    $expr: { $lte: ['$balancequantityinstock', '$minimumstocklevel'] },
+    status: 'available'
+  });
+
+  const totals = totalsAgg[0] || {
+    totalItems: 0,
+    totalValue: 0,
+    availableItems: 0,
+    issuedItems: 0
+  };
+
+  // Build asset chart data from both inventory and category master assetnames.
+  // This ensures names are visible even when inventory rows are not created yet.
+  const topItemsMap = new Map(
+    (topItems || [])
+      .filter((item) => item && item.assetName)
+      .map((item) => [String(item.assetName).trim().toLowerCase(), item])
+  );
+
+  const categoryAssetNames = (categoryAssets || [])
+    .flatMap((category) => category.assetnames || [])
+    .filter((asset) => asset && asset.name && asset.isactive !== false)
+    .map((asset) => String(asset.name).trim());
+
+  const mergedTopItems = categoryAssetNames.map((assetName) => {
+    const key = assetName.toLowerCase();
+    const fromInventory = topItemsMap.get(key);
+    return {
+      _id: assetName,
+      assetName,
+      totalQuantity: fromInventory?.totalQuantity || 0,
+      count: fromInventory?.count || 0,
+      totalValue: fromInventory?.totalValue || 0
+    };
+  });
+
+  // Include inventory-only names not present in category master list.
+  const inventoryOnlyItems = (topItems || []).filter((item) => {
+    const key = String(item.assetName || '').trim().toLowerCase();
+    if (!key) return false;
+    return !categoryAssetNames.some((name) => name.toLowerCase() === key);
+  });
+
+  const chartTopItems = [...mergedTopItems, ...inventoryOnlyItems];
+
   res.json({
     success: true,
     data: {
-      totalValue: totalValue[0]?.total || 0,
+      totalItems: totals.totalItems || 0,
+      totalValue: totals.totalValue || 0,
+      availableItems: totals.availableItems || 0,
+      issuedItems: totals.issuedItems || 0,
+      lowStockItems,
+      byStatus: byStatusRaw || [],
+      byCategory: byCategoryRaw || [],
+      byLocation: byLocationRaw || [],
       byCondition,
-      byLocation,
+      topItems: chartTopItems,
       recentAdditions,
       itemsNeedingAttention
     }
@@ -298,32 +427,32 @@ const getRequestOverview = asyncHandler(async (req, res) => {
     }
   ]);
 
-  // Get requests by priority
-  const byPriority = await Request.aggregate([
-    { $match: query },
-    {
-      $group: {
-        _id: '$priority',
-        count: { $sum: 1 }
+  // Get requests by priority and department
+  const [byPriority, byDepartment] = await Promise.all([
+    Request.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: '$priority',
+          count: { $sum: 1 }
+        }
       }
-    }
-  ]);
-
-  // Get requests by department
-  const byDepartment = await Request.aggregate([
-    { $match: query },
-    {
-      $group: {
-        _id: '$department',
-        count: { $sum: 1 }
+    ]),
+    Request.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: '$department',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      },
+      {
+        $limit: 10
       }
-    },
-    {
-      $sort: { count: -1 }
-    },
-    {
-      $limit: 10
-    }
+    ])
   ]);
 
   // Get recent requests
@@ -348,9 +477,22 @@ const getRequestOverview = asyncHandler(async (req, res) => {
       .limit(10);
   }
 
+  const statusMap = requestStats.reduce((acc, row) => {
+    acc[row._id] = row.count;
+    return acc;
+  }, {});
+  const pendingRequests = statusMap.pending || 0;
+  const approvedRequests = statusMap.approved || 0;
+  const rejectedRequests = statusMap.rejected || 0;
+  const totalRequests = pendingRequests + approvedRequests + rejectedRequests;
+
   res.json({
     success: true,
     data: {
+      totalRequests,
+      pendingRequests,
+      approvedRequests,
+      rejectedRequests,
       byStatus: requestStats,
       byPriority,
       byDepartment,
@@ -421,16 +563,10 @@ const getTransactionOverview = asyncHandler(async (req, res) => {
       .limit(10);
   }
 
-  // Get monthly transaction count (last 12 months)
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-
+  // Get monthly transaction count from existing historical data (latest 12 months with records)
   const monthlyCount = await InventoryTransaction.aggregate([
     {
-      $match: {
-        ...query,
-        transactiondate: { $gte: twelveMonthsAgo }
-      }
+      $match: query
     },
     {
       $group: {
@@ -442,18 +578,47 @@ const getTransactionOverview = asyncHandler(async (req, res) => {
       }
     },
     {
+      $sort: { '_id.year': -1, '_id.month': -1 }
+    },
+    {
+      $limit: 12
+    },
+    {
       $sort: { '_id.year': 1, '_id.month': 1 }
     }
   ]);
 
+  const monthLabel = (year, month) => {
+    return new Date(year, month - 1, 1).toLocaleString('en-US', { month: 'short' });
+  };
+  const monthlyTrends = monthlyCount.map((row) => ({
+    month: monthLabel(row._id.year, row._id.month),
+    count: row.count,
+    totalQuantity: row.count
+  }));
+
+  const statusMap = byStatus.reduce((acc, row) => {
+    acc[row._id] = row.count;
+    return acc;
+  }, {});
+  const totalTransactions = byStatus.reduce((sum, row) => sum + row.count, 0);
+  const pendingTransactions = statusMap.pending || 0;
+  const completedTransactions = statusMap.completed || 0;
+  const overdueCount = overdueTransactions.length;
+
   res.json({
     success: true,
     data: {
+      totalTransactions,
+      pendingTransactions,
+      completedTransactions,
+      overdueTransactions: overdueCount,
       byType: transactionStats,
       byStatus,
       recentTransactions,
-      overdueTransactions,
-      monthlyCount
+      overdueItems: overdueTransactions,
+      monthlyCount,
+      monthlyTrends
     }
   });
 });
