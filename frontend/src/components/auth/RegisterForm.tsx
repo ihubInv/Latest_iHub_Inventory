@@ -6,6 +6,17 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { useToast } from '../../hooks/useToast'
 
+const EMPLOYEE_DEPARTMENTS = [
+  'Research & Development',
+  'Industry Collaboration',
+  'Incubation & Acceleration',
+  'Skill Development',
+  'Operation',
+  'Business Development',
+  'IT Technology',
+  'Leading',
+] as const
+
 const RegisterForm: React.FC = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -227,17 +238,26 @@ const RegisterForm: React.FC = () => {
                 </select>
               </div>
               <div>
-                <Input
+                <select
                   id="department"
                   name="department"
-                  type="text"
-                  required
-                  placeholder="Department"
                   value={formData.department}
                   onChange={handleChange}
-                  error={formErrors.department}
-                  className="h-11 sm:h-12 px-3 sm:px-4 text-sm sm:text-base border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-[#0d559e] focus:ring-2 focus:ring-[#0d559e]/20 transition-all duration-200"
-                />
+                  required
+                  className={`h-11 sm:h-12 px-3 sm:px-4 text-sm sm:text-base border-2 rounded-lg sm:rounded-xl focus:border-[#0d559e] focus:ring-2 focus:ring-[#0d559e]/20 transition-all duration-200 w-full bg-white ${
+                    formErrors.department ? 'border-red-500' : 'border-gray-200'
+                  }`}
+                >
+                  <option value="">Select department</option>
+                  {EMPLOYEE_DEPARTMENTS.map((department) => (
+                    <option key={department} value={department}>
+                      {department}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.department && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.department}</p>
+                )}
               </div>
             </div>
 

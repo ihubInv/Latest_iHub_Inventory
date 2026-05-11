@@ -66,15 +66,19 @@ export const login = createAsyncThunk(
 
 export const register = createAsyncThunk(
   'auth/register',
-  async (userData: any, { rejectWithValue }) => {
+  async (userData: any, { rejectWithValue, dispatch }) => {
     try {
-      const response = await authApi.register(userData)
-      if (response.data.success) {
-        return response.data.data
+      const response = await dispatch(
+        authApi.endpoints.register.initiate(userData)
+      ).unwrap()
+
+      if (response.success) {
+        return response.data
       }
-      return rejectWithValue(response.data.message || 'Registration failed')
+
+      return rejectWithValue(response.message || 'Registration failed')
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Registration failed')
+      return rejectWithValue(error.data?.message || error.message || 'Registration failed')
     }
   }
 )
