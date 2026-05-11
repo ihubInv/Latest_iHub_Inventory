@@ -322,6 +322,14 @@ const updateInventoryItem = asyncHandler(async (req, res) => {
     }
   });
 
+  if (req.body.financialyear !== undefined && inventoryItem.uniqueid) {
+    const uniqueIdParts = inventoryItem.uniqueid.toUpperCase().split('/');
+    if (uniqueIdParts.length === 5) {
+      uniqueIdParts[1] = String(inventoryItem.financialyear).toUpperCase().trim();
+      inventoryItem.uniqueid = uniqueIdParts.join('/');
+    }
+  }
+
   inventoryItem.lastmodifiedby = req.user.name;
   inventoryItem.lastmodifieddate = new Date();
 

@@ -66,24 +66,20 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
     return parts.length > 0 ? parts[parts.length - 1] : '';
   };
 
-  // Update unique ID when location changes
+  // Update a unique ID segment while preserving the rest of the identifier.
   // Format: IHUB/YEAR/ASSETCODE/LOCATION/SERIAL
-  const updateUniqueIdWithNewLocation = (currentUniqueId: string, newLocation: string): string => {
-    if (!currentUniqueId || !newLocation) return currentUniqueId;
-    
-    // Normalize to uppercase for consistency
+  const updateUniqueIdSegment = (currentUniqueId: string, segmentIndex: number, newValue: string): string => {
+    if (!currentUniqueId || !newValue) return currentUniqueId;
+
     const normalizedId = currentUniqueId.toUpperCase();
     const parts = normalizedId.split('/');
-    
-    // Validate format: should have 5 parts (IHUB/YEAR/ASSETCODE/LOCATION/SERIAL)
+
     if (parts.length !== 5) {
       console.warn('Invalid unique ID format:', currentUniqueId);
       return currentUniqueId;
     }
-    
-    // Update location (index 3) while keeping everything else
-    parts[3] = newLocation.toUpperCase().trim();
-    
+
+    parts[segmentIndex] = newValue.toUpperCase().trim();
     return parts.join('/');
   };
 
@@ -138,9 +134,12 @@ const UpdateInventory: React.FC<UpdateInventoryProps> = ({
         [field]: value
       };
       
-      // If location is being updated, also update the unique ID
+      if (field === 'financialyear' && prev.uniqueid) {
+        updated.uniqueid = updateUniqueIdSegment(prev.uniqueid, 1, value);
+      }
+
       if (field === 'locationofitem' && prev.uniqueid) {
-        updated.uniqueid = updateUniqueIdWithNewLocation(prev.uniqueid, value);
+        updated.uniqueid = updateUniqueIdSegment(prev.uniqueid, 3, value);
       }
       
       return updated;
