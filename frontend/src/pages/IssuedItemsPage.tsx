@@ -1,19 +1,25 @@
 import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../store'
-import { useGetMyRequestsQuery } from '../store/api/requestsApi'
+import { useGetMyRequestsQuery, useDeleteRequestMutation } from '../store/api/requestsApi'
 import { useGetInventoryItemsQuery } from '../store/api/inventoryApi'
 import { useGetMyReturnRequestsQuery } from '../store/api/returnRequestsApi'
 import { formatRelativeDate } from '../utils/dateUtils'
-import { Package, Clock, User, Calendar, MapPin, ArrowLeft, PackageX } from 'lucide-react'
+import { Package, Clock, User, Calendar, MapPin, ArrowLeft, PackageX, Pencil, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import ReturnAssetModal from '../components/requests/ReturnAssetModal'
+import EditPendingRequestModal, { getRequestDocumentId } from '../components/requests/EditPendingRequestModal'
 
 const IssuedItemsPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth)
   const [activeTab, setActiveTab] = useState<'issued' | 'requested'>('issued')
   const [returnModalOpen, setReturnModalOpen] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<any>(null)
+  const [editingRequest, setEditingRequest] = useState<any | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const [deleteRequest] = useDeleteRequestMutation()
 
   // Fetch employee's requests
   const { data: myRequests, isLoading: requestsLoading, error: requestsError } = useGetMyRequestsQuery({
@@ -39,6 +45,22 @@ const IssuedItemsPage: React.FC = () => {
   const handleCloseReturnModal = () => {
     setReturnModalOpen(false)
     setSelectedAsset(null)
+  }
+
+  const handleDeleteRequest = async (req: any) => {
+    if (req.status !== 'pending') return
+    const id = getRequestDocumentId(req)
+    if (!id) return
+    if (!window.confirm('Delete this request? You cannot undo this action.')) return
+    setDeletingId(id)
+    try {
+      await deleteRequest(id).unwrap()
+      toast.success('Request deleted')
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || 'Could not delete request')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   // Check if an asset has a pending return request
@@ -266,15 +288,17 @@ const IssuedItemsPage: React.FC = () => {
                 {requestItems.length > 0 ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {requestItems.map((request, index) => (
-                      <div key={request.id || index} className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                      <div key={getRequestDocumentId(request) || index} className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                         {/* Header - match issued-card layout */}
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-blue-100 rounded-lg">
+                        <div className="flex items-start justify-between mb-4 gap-3">
+                          <div className="flex items-center space-x-3 min-w-0">
+                            <div className="p-2 bg-blue-100 rounded-lg shrink-0">
                               <Package className="w-5 h-5 text-blue-600" />
                             </div>
-                            <div>
-                              <h4 className="font-semibold text-gray-900">{request.itemtype} Request #{request.id?.slice(-8)}</h4>
+                            <div className="min-w-0">
+                              <h4 className="font-semibold text-gray-900 truncate">
+                                {request.itemtype} Request #{String(getRequestDocumentId(request)).slice(-8)}
+                              </h4>
                               <p className="text-sm text-gray-600">
                                 {request.status === 'pending' && `Submitted ${formatRelativeDate(request.submittedat)}`}
                                 {request.status === 'approved' && (
@@ -295,9 +319,34 @@ const IssuedItemsPage: React.FC = () => {
                               </p>
                             </div>
                           </div>
-                          <span className={`px-3 py-1 text-xs font-medium ${getStatusColor(request.status)} rounded-full`}>
-                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                          </span>
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            <span className={`px-3 py-1 text-xs font-medium ${getStatusColor(request.status)} rounded-full`}>
+                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                            </span>
+                            {request.status === 'pending' && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  title="Edit request"
+                                  aria-label="Edit request"
+                                  onClick={() => setEditingRequest(request)}
+                                  className="p-2 text-gray-600 rounded-lg border border-gray-200 bg-white hover:bg-blue-50 hover:text-[#0d559e] hover:border-blue-200 transition-colors"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Delete request"
+                                  aria-label="Delete request"
+                                  disabled={deletingId === getRequestDocumentId(request)}
+                                  onClick={() => handleDeleteRequest(request)}
+                                  className="p-2 text-gray-600 rounded-lg border border-gray-200 bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         {/* Details grid to mirror direct card spacing */}
@@ -428,6 +477,12 @@ const IssuedItemsPage: React.FC = () => {
             asset={selectedAsset}
           />
         )}
+
+        <EditPendingRequestModal
+          isOpen={!!editingRequest}
+          onClose={() => setEditingRequest(null)}
+          request={editingRequest}
+        />
       </div>
     </div>
   )

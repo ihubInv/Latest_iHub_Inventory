@@ -155,9 +155,20 @@ const updateRequest = asyncHandler(async (req, res) => {
     });
   }
 
-  // Update fields
-  Object.keys(req.body).forEach(key => {
-    if (req.body[key] !== undefined && key !== 'status') {
+  // Only allow safe, editable fields (never status / employee / reviewer from body)
+  const allowedFields = [
+    'itemtype',
+    'quantity',
+    'purpose',
+    'justification',
+    'expectedreturndate',
+    'priority',
+    'department',
+    'project',
+    'estimatedcost',
+  ];
+  allowedFields.forEach((key) => {
+    if (req.body[key] !== undefined) {
       request[key] = req.body[key];
     }
   });
