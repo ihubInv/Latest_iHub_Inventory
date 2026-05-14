@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   useGetUsersQuery,
   useCreateUserMutation,
@@ -8,6 +8,7 @@ import {
 import { useAppSelector } from '../../store/hooks';
 import { Users, Plus, Edit, Trash2, Search, Filter, UserCheck, UserX, X, Save, Eye, EyeOff, Shield, UserCog, User as UserIcon, Building2, CheckCircle, XCircle } from 'lucide-react';
 import AttractiveDropdown from '../common/AttractiveDropdown';
+import DepartmentDropdown from '../common/DepartmentDropdown';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { validateEmail } from '../../utils/validation';
@@ -87,6 +88,15 @@ interface FormData {
 const UserManagement: React.FC = () => {
   const { data: usersResponse } = useGetUsersQuery({});
   const users = usersResponse?.data || [];
+
+  const extraDepartmentNames = useMemo(() => {
+    const set = new Set<string>();
+    for (const u of users) {
+      const d = String((u as any)?.department || '').trim();
+      if (d) set.add(d);
+    }
+    return Array.from(set);
+  }, [users]);
   const [createUser] = useCreateUserMutation();
   const [updateUser] = useUpdateUserMutation();
   const [deleteUser] = useDeleteUserMutation();
@@ -158,45 +168,6 @@ const [formData, setFormData] = useState<FormData>({
       label: 'Inactive',
       icon: <XCircle size={16} className="text-red-500" />,
       description: 'Deactivated users'
-    }
-  ];
-
-  const departmentOptions = [
-    { 
-      value: '', 
-      label: 'No Department',
-      icon: <Building2 size={16} />,
-      description: 'No specific department assigned'
-    },
-    { 
-      value: 'IT', 
-      label: 'Information Technology',
-      icon: <Building2 size={16} />,
-      description: 'IT department'
-    },
-    { 
-      value: 'HR', 
-      label: 'Human Resources',
-      icon: <Building2 size={16} />,
-      description: 'Human Resources department'
-    },
-    { 
-      value: 'Finance', 
-      label: 'Finance',
-      icon: <Building2 size={16} />,
-      description: 'Finance department'
-    },
-    { 
-      value: 'Operations', 
-      label: 'Operations',
-      icon: <Building2 size={16} />,
-      description: 'Operations department'
-    },
-    { 
-      value: 'Marketing', 
-      label: 'Marketing',
-      icon: <Building2 size={16} />,
-      description: 'Marketing department'
     }
   ];
 
@@ -815,11 +786,13 @@ const handleUserUpdate = (user:any) => {
 
         {/* Row 2 - Column 2 */}
         <div>
-          <AttractiveDropdown
+          <DepartmentDropdown
             label="Department"
-            options={departmentOptions}
             value={formData.department}
             onChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+            includeEmpty
+            emptyLabel="No department"
+            extraNames={extraDepartmentNames}
             placeholder="Select department"
             size="sm"
             searchable
@@ -972,11 +945,13 @@ const handleUserUpdate = (user:any) => {
 
   {/* Row 2 - Column 1 */}
   <div>
-    <AttractiveDropdown
+    <DepartmentDropdown
       label="Department"
-      options={departmentOptions}
       value={formData.department}
       onChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+      includeEmpty
+      emptyLabel="No department"
+      extraNames={extraDepartmentNames}
       placeholder="Select department"
       size="sm"
       searchable

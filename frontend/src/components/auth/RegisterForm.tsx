@@ -5,7 +5,7 @@ import { register } from '../../store/slices/authSlice'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { useToast } from '../../hooks/useToast'
-import { EMPLOYEE_DEPARTMENTS } from '../../constants/departments'
+import DepartmentDropdown from '../common/DepartmentDropdown'
 
 const RegisterForm: React.FC = () => {
   const dispatch = useDispatch()
@@ -228,26 +228,19 @@ const RegisterForm: React.FC = () => {
                 </select>
               </div>
               <div>
-                <select
-                  id="department"
-                  name="department"
+                <DepartmentDropdown
                   value={formData.department}
-                  onChange={handleChange}
-                  required
-                  className={`h-11 sm:h-12 px-3 sm:px-4 text-sm sm:text-base border-2 rounded-lg sm:rounded-xl focus:border-[#0d559e] focus:ring-2 focus:ring-[#0d559e]/20 transition-all duration-200 w-full bg-white ${
-                    formErrors.department ? 'border-red-500' : 'border-gray-200'
-                  }`}
-                >
-                  <option value="">Select department</option>
-                  {EMPLOYEE_DEPARTMENTS.map((department) => (
-                    <option key={department} value={department}>
-                      {department}
-                    </option>
-                  ))}
-                </select>
-                {formErrors.department && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.department}</p>
-                )}
+                  onChange={(value) => {
+                    setFormData((prev) => ({ ...prev, department: value }))
+                    if (formErrors.department) {
+                      setFormErrors((prev) => ({ ...prev, department: '' }))
+                    }
+                  }}
+                  placeholder="Select department"
+                  error={formErrors.department}
+                  size="sm"
+                  variant="bordered"
+                />
               </div>
             </div>
 

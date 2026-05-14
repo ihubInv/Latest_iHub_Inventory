@@ -1,64 +1,112 @@
-import React from 'react';
-import { Building, Code, Briefcase, Users, Heart, Cog } from 'lucide-react';
-import AttractiveDropdown from './AttractiveDropdown';
+import React, { useMemo } from 'react'
+import {
+  Building2,
+  Briefcase,
+  Users,
+  Layers,
+  Factory,
+  GraduationCap,
+  LineChart,
+  Sparkles,
+  Landmark,
+} from 'lucide-react'
+import AttractiveDropdown from './AttractiveDropdown'
+import { EMPLOYEE_DEPARTMENTS } from '../../constants/departments'
 
-interface DepartmentDropdownProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  label?: string;
-  required?: boolean;
-  disabled?: boolean;
-  className?: string;
-  error?: string;
-  size?: 'sm' | 'md' | 'lg';
-  searchable?: boolean;
+const DEPT_ICONS = [
+  Building2,
+  Briefcase,
+  Users,
+  Layers,
+  Factory,
+  GraduationCap,
+  LineChart,
+  Sparkles,
+  Landmark,
+]
+
+const STANDARD = new Set<string>([...EMPLOYEE_DEPARTMENTS])
+
+export interface DepartmentDropdownProps {
+  value: string
+  onChange: (value: string) => void
+  /** When true, first option clears department (value ""). */
+  includeEmpty?: boolean
+  emptyLabel?: string
+  /** Values not in the standard list (e.g. legacy DB values) shown with a neutral style. */
+  extraNames?: string[]
+  placeholder?: string
+  label?: string
+  required?: boolean
+  disabled?: boolean
+  className?: string
+  error?: string
+  size?: 'sm' | 'md' | 'lg'
+  searchable?: boolean
+  variant?: 'default' | 'bordered' | 'filled'
+}
+
+function buildOptions(includeEmpty: boolean, emptyLabel: string, extraNames: string[]) {
+  const seen = new Set<string>()
+  const out: {
+    value: string
+    label: string
+    icon: React.ReactNode
+    description?: string
+  }[] = []
+
+  if (includeEmpty) {
+    out.push({
+      value: '',
+      label: emptyLabel,
+      icon: <Building2 className="w-4 h-4 text-gray-400" />,
+      description: 'Not assigned to a department',
+    })
+    seen.add('')
+  }
+
+  const extrasSorted = [...new Set(extraNames.map((n) => n.trim()).filter(Boolean))].filter(
+    (n) => !STANDARD.has(n) && !seen.has(n)
+  )
+  extrasSorted.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+
+  for (const name of extrasSorted) {
+    seen.add(name)
+    out.push({
+      value: name,
+      label: name,
+      icon: <Layers className="w-4 h-4 text-amber-600" />,
+      description: 'Saved value (not in default list)',
+    })
+  }
+
+  EMPLOYEE_DEPARTMENTS.forEach((name, i) => {
+    const Icon = DEPT_ICONS[i % DEPT_ICONS.length]
+    out.push({
+      value: name,
+      label: name,
+      icon: <Icon className="w-4 h-4 text-[#0d559e]" />,
+      description: 'Organizational department',
+    })
+  })
+
+  return out
 }
 
 const DepartmentDropdown: React.FC<DepartmentDropdownProps> = ({
   value,
   onChange,
-  placeholder = "Select department",
+  includeEmpty = false,
+  emptyLabel = 'No department',
+  extraNames = [],
+  placeholder = 'Select department',
+  searchable = true,
   ...props
 }) => {
-  const options = [
-    { 
-      value: 'IT Department', 
-      label: 'IT Department', 
-      icon: <Code className="w-4 h-4 text-blue-500" />,
-      description: 'Information Technology'
-    },
-    { 
-      value: 'HR Department', 
-      label: 'HR Department', 
-      icon: <Users className="w-4 h-4 text-green-500" />,
-      description: 'Human Resources'
-    },
-    { 
-      value: 'Finance Department', 
-      label: 'Finance Department', 
-      icon: <Briefcase className="w-4 h-4 text-purple-500" />,
-      description: 'Financial Management'
-    },
-    { 
-      value: 'Operations Department', 
-      label: 'Operations Department', 
-      icon: <Cog className="w-4 h-4 text-orange-500" />,
-      description: 'Daily Operations'
-    },
-    { 
-      value: 'Marketing Department', 
-      label: 'Marketing Department', 
-      icon: <Heart className="w-4 h-4 text-pink-500" />,
-      description: 'Marketing & Sales'
-    },
-    { 
-      value: 'Administration', 
-      label: 'Administration', 
-      icon: <Building className="w-4 h-4 text-gray-500" />,
-      description: 'Administrative Services'
-    }
-  ];
+  const options = useMemo(
+    () => buildOptions(includeEmpty, emptyLabel, extraNames),
+    [includeEmpty, emptyLabel, extraNames]
+  )
 
   return (
     <AttractiveDropdown
@@ -66,11 +114,11 @@ const DepartmentDropdown: React.FC<DepartmentDropdownProps> = ({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      icon={<Building className="w-4 h-4" />}
-      searchable
+      icon={<Building2 className="w-4 h-4 text-gray-500" />}
+      searchable={searchable}
       {...props}
     />
-  );
-};
+  )
+}
 
-export default DepartmentDropdown;
+export default DepartmentDropdown

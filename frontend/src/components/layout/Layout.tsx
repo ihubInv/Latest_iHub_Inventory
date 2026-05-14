@@ -13,6 +13,7 @@ function isPathAllowedForMgmtEmployeeNav(pathname: string): boolean {
   if (pathname.startsWith('/employee')) return true
   if (pathname.startsWith('/create-request')) return true
   if (pathname.startsWith('/notifications')) return true
+  if (pathname === '/profile') return true
   return false
 }
 
