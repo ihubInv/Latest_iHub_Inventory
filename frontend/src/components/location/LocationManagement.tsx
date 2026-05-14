@@ -32,7 +32,11 @@ import { CRUDToasts } from '../../services/toastService';
 import toast from 'react-hot-toast';
 
 const LocationManagement: React.FC = () => {
-  const { data: locationsResponse, isLoading: loading, error } = useGetLocationsQuery({});
+  const { data: locationsResponse, isLoading: loading, error } = useGetLocationsQuery({
+    page: 1,
+    limit: 1000,
+    sort: 'name',
+  });
   const locations = (locationsResponse?.data || []).map((loc: any) => ({
     ...loc,
     isactive: loc.isactive ?? loc.isActive ?? false,
@@ -152,18 +156,10 @@ const LocationManagement: React.FC = () => {
   };
 
   const handleDeleteLocation = async (locationId: string) => {
-    // Only admins can delete locations
-    if (user?.role !== 'admin') {
-      toast.error('Only administrators can delete locations');
+    if (user?.role !== 'admin' && user?.role !== 'stock-manager') {
+      toast.error('Only administrators and stock managers can delete locations');
       return;
     }
-    // Prevent deletion of protected "Storage Room A" location
-    const location = locations.find((loc: any) => loc.id === locationId);
-    if (location && location.name === 'Storage Room A') {
-      toast.error('Cannot delete "Storage Room A" - This is a protected default location');
-      return;
-    }
-    
     const loadingToast = CRUDToasts.deleting('location');
     try {
       await deleteLocation(locationId).unwrap();
@@ -360,15 +356,10 @@ const LocationManagement: React.FC = () => {
               {(user?.role === 'admin' || user?.role === 'stock-manager') && (
                 <button
                   onClick={() => handleDeleteLocation(location.id)}
-                  disabled={location.name === 'Storage Room A'}
-                  className={`p-2 transition-colors rounded ${
-                    location.name === 'Storage Room A'
-                      ? 'text-gray-400 cursor-not-allowed bg-gray-50'
-                      : 'text-red-600 hover:text-red-900 hover:bg-red-50'
-                  }`}
-                  title={location.name === 'Storage Room A' ? 'Cannot delete protected location' : 'Delete Location'}
+                  className="p-2 text-red-600 transition-colors rounded hover:text-red-900 hover:bg-red-50"
+                  title="Delete Location"
                 >
-                  <Trash2 size={16} className={location.name === 'Storage Room A' ? 'text-gray-400' : 'text-red-500'} />
+                  <Trash2 size={16} className="text-red-500" />
                 </button>
               )}
             </div>
@@ -401,7 +392,7 @@ const LocationManagement: React.FC = () => {
                   onChange={(e) => setNewLocation(prev => ({ ...prev, name: e.target.value }))}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., IT Department, Storage Room A"
+                  placeholder="e.g., IT Department, Building A"
                 />
               </div>
 

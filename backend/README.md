@@ -109,7 +109,7 @@ A comprehensive Node.js backend API for inventory management system built with E
 - `GET /api/categories/:id` - Get category by ID
 - `POST /api/categories` - Create category (Admin/Stock Manager)
 - `PUT /api/categories/:id` - Update category (Admin/Stock Manager)
-- `DELETE /api/categories/:id` - Delete category (Admin)
+- `DELETE /api/categories/:id` - Delete category (Admin/Stock Manager)
 - `GET /api/categories/active` - Get active categories
 - `GET /api/categories/with-inventory` - Get categories with inventory
 

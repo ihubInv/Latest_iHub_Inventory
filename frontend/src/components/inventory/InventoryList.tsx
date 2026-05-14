@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   useGetInventoryItemsQuery,
+  useGetActiveLocationsQuery,
   useCreateInventoryItemMutation,
   useUpdateInventoryItemMutation,
   useDeleteInventoryItemMutation
@@ -87,6 +88,7 @@ const InventoryList: React.FC = () => {
     pollingInterval: 10000, // Poll every 10 seconds to keep data fresh
   });
   const inventoryItems = inventoryResponse?.data || [];
+  const { data: activeLocationsResponse } = useGetActiveLocationsQuery();
 
   // Calculate real-time status counts
   const statusCounts = React.useMemo(() => {
@@ -302,12 +304,19 @@ const InventoryList: React.FC = () => {
 
   const locationDropdownOptions = React.useMemo(() => {
     const items = inventoryItems || [];
-    const hasUnset = items.some((item: any) => !String(item.locationofitem || '').trim());
+    const activeLocations = activeLocationsResponse?.data || [];
+
     const names = new Set<string>();
+    for (const loc of activeLocations) {
+      const n = String((loc as { name?: string }).name || '').trim();
+      if (n) names.add(n);
+    }
     for (const item of items) {
       const loc = String(item.locationofitem || '').trim();
       if (loc) names.add(loc);
     }
+
+    const hasUnset = items.some((item: any) => !String(item.locationofitem || '').trim());
     const sorted = [...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     const opts = sorted.map((loc) => ({
       value: loc,
@@ -322,7 +331,7 @@ const InventoryList: React.FC = () => {
       });
     }
     return opts;
-  }, [inventoryItems]);
+  }, [inventoryItems, activeLocationsResponse?.data]);
 
   const filteredItems = inventoryItems?.filter((item: any) => {
     const matchesSearch = item.assetname.toLowerCase().includes(searchTerm.toLowerCase()) ||

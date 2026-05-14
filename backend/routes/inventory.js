@@ -748,7 +748,7 @@ router.post('/:id/return', authorize('admin', 'stock-manager'), validateObjectId
  *                     example: excellent
  *                   locationofitem:
  *                     type: string
- *                     example: Storage Room A
+ *                     example: Building A - Room 101
  *     responses:
  *       200:
  *         description: Items updated successfully

@@ -482,7 +482,7 @@ POST /api/categories
 PUT /api/categories/:id
 ```
 
-#### Delete Category (Admin only)
+#### Delete Category (Admin/Stock Manager)
 ```http
 DELETE /api/categories/:id
 ```

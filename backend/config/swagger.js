@@ -277,7 +277,7 @@ const options = {
             name: {
               type: 'string',
               description: 'Location name',
-              example: 'Storage Room A'
+              example: 'Building A - Room 101'
             },
             description: {
               type: 'string',

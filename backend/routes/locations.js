@@ -410,7 +410,7 @@ router.get('/', validatePagination, validateSearch, getLocations);
  *             properties:
  *               name:
  *                 type: string
- *                 example: Storage Room A
+ *                 example: Primary Storage
  *               description:
  *                 type: string
  *                 example: Main storage room for general inventory
@@ -500,7 +500,7 @@ router.post('/', authorize('admin', 'stock-manager'), createLocation);
  *             properties:
  *               name:
  *                 type: string
- *                 example: Storage Room A Updated
+ *                 example: Primary Storage Updated
  *               description:
  *                 type: string
  *                 example: Updated main storage room
@@ -600,7 +600,7 @@ router.post('/', authorize('admin', 'stock-manager'), createLocation);
  *         $ref: '#/components/responses/ServerError'
  */
 router.put('/:id', authorize('admin', 'stock-manager'), validateObjectId('id'), updateLocation);
-router.delete('/:id', authorize('admin'), validateObjectId('id'), deleteLocation);
+router.delete('/:id', authorize('admin', 'stock-manager'), validateObjectId('id'), deleteLocation);
 
 /**
  * @swagger
@@ -672,7 +672,7 @@ router.patch('/:id/toggle-status', authorize('admin', 'stock-manager'), validate
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: Location 'Storage Room A' set as default
+ *                   example: Location 'Primary Storage' set as default
  *                 data:
  *                   $ref: '#/components/schemas/Location'
  *       401:

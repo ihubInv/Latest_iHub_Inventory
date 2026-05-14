@@ -27,25 +27,9 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({
   ...props
 }) => {
   // Use getActiveLocations to get all active locations without pagination
-  const { data: activeLocationsResponse, isLoading } = useGetActiveLocationsQuery();
-  const activeLocations = activeLocationsResponse?.data || [];
-  
-  // Always include "Storage Room A" as a protected default location if it doesn't exist
-  const hasStorageRoomA = activeLocations.some((loc: any) => loc.name === 'Storage Room A');
-  const protectedLocation = {
-    id: 'protected-storage-room-a',
-    name: 'Storage Room A',
-    isActive: true,
-    isactive: true,
-    createdat: new Date().toISOString(),
-    updatedat: new Date().toISOString()
-  };
-  
-  // Combine protected location with database locations, ensuring no duplicates
-  const allLocations = hasStorageRoomA 
-    ? activeLocations 
-    : [protectedLocation, ...activeLocations];
-  
+  const { data: activeLocationsResponse } = useGetActiveLocationsQuery();
+  const allLocations = activeLocationsResponse?.data || [];
+
   // Create location options with inventory data
   const options = allLocations.map((location: any) => {
     const itemsInLocation = inventoryItems?.filter((item: any) => item.locationofitem === location.name);
@@ -61,8 +45,7 @@ const LocationDropdown: React.FC<LocationDropdownProps> = ({
     };
   });
 
-  // Show placeholder message if no options available (should never happen now)
-  const displayPlaceholder = options.length === 0 
+  const displayPlaceholder = options.length === 0
     ? "No locations available - Add locations in Location Management"
     : placeholder || "Select location";
 

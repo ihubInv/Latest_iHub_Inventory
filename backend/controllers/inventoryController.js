@@ -127,7 +127,7 @@ const generateAssetCode = (assetName) => {
  * 
  * @param {string} financialyear - Financial year (e.g., "2025-26")
  * @param {string} assetname - Asset name (e.g., "Software")
- * @param {string} locationofitem - Location (e.g., "Storage Room A")
+ * @param {string} locationofitem - Location label (must match a location from Location Management)
  * @returns {Promise<string>} Unique ID with auto-generated serial number
  */
 const generateUniqueIdWithGlobalSerial = async (financialyear, assetname, locationofitem) => {

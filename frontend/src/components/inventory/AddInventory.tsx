@@ -85,7 +85,7 @@ const AddInventory: React.FC = () => {
     warrantyinformation: string;
     annualmanagementcharge: number;
   }>>([
-    { uniqueid: '', assetname: '', assetnamefromcategory: '', categorytype: '', assetcategory: '', assetcategoryid: '', makemodel: '', productserialnumber: '', vendorname: '', rateinclusivetax: 0, totalcost: 0, quantity: 1, status: 'available', conditionofasset: 'excellent', depreciationmethod: 'written-down-value', expectedlifespan: '', salvagevalue: 0, specification: '', description: '', invoicenumber: '', dateofinvoice: new Date(), dateofentry: new Date(), purchaseordernumber: '', unitofmeasurement: 'Pieces', locationofitem: 'Storage Room A', warrantyinformation: '', annualmanagementcharge: 0 }
+    { uniqueid: '', assetname: '', assetnamefromcategory: '', categorytype: '', assetcategory: '', assetcategoryid: '', makemodel: '', productserialnumber: '', vendorname: '', rateinclusivetax: 0, totalcost: 0, quantity: 1, status: 'available', conditionofasset: 'excellent', depreciationmethod: 'written-down-value', expectedlifespan: '', salvagevalue: 0, specification: '', description: '', invoicenumber: '', dateofinvoice: new Date(), dateofentry: new Date(), purchaseordernumber: '', unitofmeasurement: 'Pieces', locationofitem: '', warrantyinformation: '', annualmanagementcharge: 0 }
   ]);
 
   // Get current financial year
@@ -110,7 +110,7 @@ const AddInventory: React.FC = () => {
     quantityperitem: 1,
     rateinclusivetax: 0,
     totalcost: 0,
-    locationofitem: 'Storage Room A',
+    locationofitem: '',
     issuedto: '',
     dateofissue: null as Date | null,
     expectedreturndate: null as Date | null,
@@ -487,7 +487,7 @@ const handleFile = (file?: File) => {
   //       quantityperitem: 1,
   //       rateinclusivetax: 0,
   //       totalcost: 0,
-  //       locationofitem: 'Storage Room A',
+  //       locationofitem: '',
   //       issuedto: '',
   //       dateofissue: null,
   //       expectedreturndate: null,
@@ -723,7 +723,7 @@ const handleFile = (file?: File) => {
       quantityperitem: 1,
       rateinclusivetax: 0,
       totalcost: 0,
-      locationofitem: 'Storage Room A',
+      locationofitem: '',
       issuedto: '',
       dateofissue: null as Date | null,
       expectedreturndate: null as Date | null,
@@ -1235,7 +1235,7 @@ const handleFile = (file?: File) => {
                     locationofitem: value
                   }))}
                   required
-                  placeholder="Storage Room A"
+                  placeholder="Select location"
                   searchable
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -1546,7 +1546,7 @@ const handleFile = (file?: File) => {
                       quantityperitem: 1,
                       rateinclusivetax: 0,
                       totalcost: 0,
-                      locationofitem: 'Storage Room A',
+                      locationofitem: '',
                       issuedto: '',
                       dateofissue: null,
                       expectedreturndate: null,
@@ -1937,7 +1937,7 @@ const handleFile = (file?: File) => {
                             <LocationDropdown
                               label="Location *"
                               inventoryItems={inventoryItems}
-                              value={it.locationofitem || formData.locationofitem || 'Storage Room A'}
+                              value={it.locationofitem || formData.locationofitem || ''}
                               onChange={(value) => {
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, locationofitem: value } : row));
                                 // Update unique ID when location changes
@@ -1948,7 +1948,7 @@ const handleFile = (file?: File) => {
                                 }
                               }}
                               required
-                              placeholder="Storage Room A"
+                              placeholder="Select location"
                               searchable
                             />
                           </div>
@@ -2264,7 +2264,7 @@ const handleFile = (file?: File) => {
                             dateofentry: new Date(),
                             purchaseordernumber: '',
                             unitofmeasurement: 'Pieces',
-                            locationofitem: formData.locationofitem || 'Storage Room A',
+                            locationofitem: formData.locationofitem || '',
                             warrantyinformation: '',
                             annualmanagementcharge: 0
                           }]);
@@ -2366,7 +2366,7 @@ const handleFile = (file?: File) => {
                               dateofentry: new Date(),
                               purchaseordernumber: '',
                               unitofmeasurement: 'Pieces',
-                              locationofitem: formData.locationofitem || 'Storage Room A',
+                              locationofitem: formData.locationofitem || '',
                               warrantyinformation: '',
                               annualmanagementcharge: 0
                             }));
@@ -2437,7 +2437,7 @@ const handleFile = (file?: File) => {
                                   dateofentry: template.dateofentry || new Date(),
                                   purchaseordernumber: template.purchaseordernumber || '',
                                   unitofmeasurement: template.unitofmeasurement || 'Pieces',
-                                  locationofitem: template.locationofitem || formData.locationofitem || 'Storage Room A',
+                                  locationofitem: template.locationofitem || formData.locationofitem || '',
                                   warrantyinformation: template.warrantyinformation || '',
                                   annualmanagementcharge: template.annualmanagementcharge || 0
                                 };

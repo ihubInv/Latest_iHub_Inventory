@@ -75,7 +75,7 @@ const seedDatabase = async () => {
     // Create locations
     const locations = await Location.create([
       {
-        name: 'Storage Room A',
+        name: 'Primary Storage',
         description: 'Main storage room for general inventory',
         address: 'Building A, Ground Floor',
         building: 'Building A',

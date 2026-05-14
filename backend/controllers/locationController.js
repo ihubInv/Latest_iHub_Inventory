@@ -183,7 +183,7 @@ const updateLocation = asyncHandler(async (req, res) => {
 
 // @desc    Delete location
 // @route   DELETE /api/locations/:id
-// @access  Private (Admin)
+// @access  Private (Admin / Stock Manager)
 const deleteLocation = asyncHandler(async (req, res) => {
   const location = await Location.findById(req.params.id);
 

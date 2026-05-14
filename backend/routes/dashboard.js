@@ -148,7 +148,7 @@ router.get('/stats', getDashboardStats);
  *                         properties:
  *                           location:
  *                             type: string
- *                             example: Storage Room A
+ *                             example: Building A - Room 101
  *                           count:
  *                             type: number
  *                             example: 100
