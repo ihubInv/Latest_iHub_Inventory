@@ -74,6 +74,12 @@ const protect = async (req, res, next) => {
   }
 };
 
+/** Normalize role strings for RBAC (handles casing / underscore variants). */
+function normalizeRole(role) {
+  if (role == null || role === undefined) return '';
+  return String(role).trim().toLowerCase().replace(/_/g, '-');
+}
+
 // Grant access to specific roles
 const authorize = (...roles) => {
   return (req, res, next) => {
@@ -84,7 +90,10 @@ const authorize = (...roles) => {
       });
     }
 
-    if (!roles.includes(req.user.role)) {
+    const userRole = normalizeRole(req.user.role);
+    const allowed = roles.map(normalizeRole);
+
+    if (!allowed.includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: `User role ${req.user.role} is not authorized to access this route`
