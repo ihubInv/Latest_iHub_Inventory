@@ -27,6 +27,7 @@ import CreateRequestPage from './pages/CreateRequest'
 import Notifications from './pages/Notifications'
 import IssuedItemsPage from './pages/IssuedItemsPage'
 import ReturnRequests from './pages/ReturnRequests'
+import ProfilePage from './pages/ProfilePage'
 
 function App() {
   return (
@@ -249,6 +250,17 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Notifications />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ProfilePage />
                   </Layout>
                 </ProtectedRoute>
               }

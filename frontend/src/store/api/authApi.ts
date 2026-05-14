@@ -57,7 +57,10 @@ export const authApi = baseApi.injectEndpoints({
       query: () => '/auth/me',
       providesTags: ['User'],
     }),
-    updateProfile: builder.mutation<{ success: boolean; data: User }, Partial<User>>({
+    updateProfile: builder.mutation<
+      { success: boolean; message?: string; data: { user: User } },
+      Partial<Pick<User, 'name' | 'email' | 'department' | 'phone' | 'address' | 'location' | 'bio'>>
+    >({
       query: (userData) => ({
         url: '/auth/profile',
         method: 'PUT',

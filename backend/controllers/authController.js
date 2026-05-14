@@ -167,16 +167,44 @@ const getMe = asyncHandler(async (req, res) => {
 // @route   PUT /api/auth/profile
 // @access  Private
 const updateProfile = asyncHandler(async (req, res) => {
-  const { name, department, phone, address, location, bio } = req.body;
+  const { name, email, department, phone, address, location, bio } = req.body;
 
   const user = await User.findById(req.user.id);
 
-  if (name) user.name = name;
-  if (department) user.department = department;
-  if (phone) user.phone = phone;
-  if (address) user.address = address;
-  if (location) user.location = location;
-  if (bio) user.bio = bio;
+  if (name !== undefined && name !== null) {
+    const trimmed = String(name).trim();
+    if (trimmed.length >= 2) user.name = trimmed;
+  }
+
+  if (email !== undefined && email !== null) {
+    const nextEmail = String(email).trim().toLowerCase();
+    if (nextEmail && nextEmail !== String(user.email).toLowerCase()) {
+      const taken = await User.findOne({ email: nextEmail, _id: { $ne: user._id } });
+      if (taken) {
+        return res.status(400).json({
+          success: false,
+          message: 'That email is already registered to another account',
+        });
+      }
+      user.email = nextEmail;
+    }
+  }
+
+  if (department !== undefined) {
+    user.department = department === '' || department === null ? undefined : String(department).trim();
+  }
+  if (phone !== undefined && phone !== null && String(phone).trim() !== '') {
+    user.phone = String(phone).trim();
+  }
+  if (address !== undefined) {
+    user.address = address === '' || address === null ? undefined : String(address).trim();
+  }
+  if (location !== undefined) {
+    user.location = location === '' || location === null ? undefined : String(location).trim();
+  }
+  if (bio !== undefined) {
+    user.bio = bio === '' || bio === null ? undefined : String(bio).trim();
+  }
 
   await user.save();
 

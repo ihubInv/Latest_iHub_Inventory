@@ -17,7 +17,8 @@ import {
   UserCheck,
   Bell,
   Eye,
-  LogOut
+  LogOut,
+  UserCircle
 } from 'lucide-react';
 import { logout } from '../../store/slices/authSlice';
 
@@ -55,6 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
           { icon: MapPin, label: 'Location Management', path: `/locations` },
           { icon: Users, label: 'User Management', path: `/users` },
           { icon: FileText, label: 'Reports', path: `/reports` },
+          { icon: UserCircle, label: 'Profile', path: `/profile` },
         ];
       
       case 'stock-manager':
@@ -67,6 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
           { icon: PackageX, label: 'Return Requests', path: `/return-requests` },
           { icon: MapPin, label: 'Location Management', path: `/locations` },
           { icon: FileText, label: 'Reports', path: `/reports` },
+          { icon: UserCircle, label: 'Profile', path: `/profile` },
         ];
       
       case 'employee':
@@ -75,6 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
           { icon: ClipboardList, label: 'Create Request', path: `/create-request` },
           { icon: Eye, label: 'Issued Items Details', path: `/employee/issued-items` },
           { icon: Bell, label: 'Notifications', path: `/notifications` },
+          { icon: UserCircle, label: 'Profile', path: `/profile` },
         ];
       
       default:
@@ -195,6 +199,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
               'Create Request': 'text-teal-200',
               'Issued Items Details': 'text-sky-200',
               'Notifications': 'text-orange-200',
+              'Profile': 'text-pink-200',
             };
             const iconColor = colorMap[item.label] || 'text-blue-100';
             
@@ -287,6 +292,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
               'Create Request': 'text-teal-200',
               'Issued Items Details': 'text-sky-200',
               'Notifications': 'text-orange-200',
+              'Profile': 'text-pink-200',
             };
             const iconColor = colorMap[item.label] || 'text-blue-100';
             

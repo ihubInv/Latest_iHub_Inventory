@@ -5,17 +5,7 @@ import { register } from '../../store/slices/authSlice'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { useToast } from '../../hooks/useToast'
-
-const EMPLOYEE_DEPARTMENTS = [
-  'Research & Development',
-  'Industry Collaboration',
-  'Incubation & Acceleration',
-  'Skill Development',
-  'Operation',
-  'Business Development',
-  'IT Technology',
-  'Leading',
-] as const
+import { EMPLOYEE_DEPARTMENTS } from '../../constants/departments'
 
 const RegisterForm: React.FC = () => {
   const dispatch = useDispatch()

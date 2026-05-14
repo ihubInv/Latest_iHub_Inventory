@@ -220,6 +220,11 @@ const authSlice = createSlice({
         localStorage.removeItem(EMPLOYEE_NAV_STORAGE_KEY)
       }
     },
+    /** Replace current user (e.g. after profile update); keeps token and employee-nav preference */
+    setUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload
+      localStorage.setItem('user', JSON.stringify(action.payload))
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -330,5 +335,5 @@ const authSlice = createSlice({
   },
 })
 
-export const { clearAuth, setCredentials, setUseEmployeeNavigation } = authSlice.actions
+export const { clearAuth, setCredentials, setUseEmployeeNavigation, setUser } = authSlice.actions
 export default authSlice.reducer
