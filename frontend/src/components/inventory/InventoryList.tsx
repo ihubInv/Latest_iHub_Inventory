@@ -7,7 +7,7 @@ import {
 } from '../../store/api';
 import { useAppSelector } from '../../store/hooks';
 import { AssetConditionChart, CategoryDistributionChart } from '../charts';
-import { Search, Filter, Download, Edit, Trash2, Eye, Package, Save, X, Zap, Calculator, BarChart3, List, AlertTriangle, CheckSquare, Square, FileSpreadsheet, FileText, Image, Sliders, RotateCcw, ChevronDown } from 'lucide-react';
+import { Search, Filter, Download, Edit, Trash2, Eye, Package, Save, X, Zap, Calculator, BarChart3, List, AlertTriangle, CheckSquare, Square, FileSpreadsheet, FileText, Image, Sliders, RotateCcw, ChevronDown, History } from 'lucide-react';
 import { CRUDToasts } from '../../services/toastService';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -25,6 +25,7 @@ import {
 import html2canvas from 'html2canvas';
 import ViewInventory from './ViewInventory';
 import UpdateInventory from './UpdateInventory';
+import AssetAuditHistoryModal from './AssetAuditHistoryModal';
 import StatusDropdown from '../common/StatusDropdown';
 import CategoryDropdown from '../common/CategoryDropdown';
 // import ConditionDropdown from '../common/ConditionDropdown';
@@ -113,6 +114,7 @@ const InventoryList: React.FC = () => {
   });
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [viewingCategory, setViewingCategory] = useState<any>(null);
+  const [auditModalItem, setAuditModalItem] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState(() => {
     return localStorage.getItem('inventoryListFilterStatus') || 'all';
   });
@@ -1932,6 +1934,18 @@ const InventoryList: React.FC = () => {
                                               </button>
                                               {user?.role === 'admin' || user?.role === 'stock-manager' ? (
                                                 <>
+                                                  <button
+                                                    type="button"
+                                                    title="Audit history"
+                                                    aria-label="Audit history"
+                                                    className="p-1 text-violet-600 rounded hover:text-violet-900 hover:bg-violet-50"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setAuditModalItem(item);
+                                                    }}
+                                                  >
+                                                    <History size={16} className="text-violet-600" />
+                                                  </button>
                                                   <button 
                                                     className="p-1 text-green-600 rounded hover:text-green-900"
                                                     onClick={(e) => {
@@ -2231,6 +2245,18 @@ const InventoryList: React.FC = () => {
           />
         </>
       )}
+
+      <AssetAuditHistoryModal
+        isOpen={!!auditModalItem}
+        onClose={() => setAuditModalItem(null)}
+        inventoryItemId={auditModalItem?.id || auditModalItem?._id}
+        uniqueId={auditModalItem?.uniqueid}
+        assetLabel={
+          auditModalItem?.assetname && auditModalItem?.uniqueid
+            ? `${auditModalItem.assetname} (${auditModalItem.uniqueid})`
+            : auditModalItem?.assetname
+        }
+      />
     </div>
   );
 };

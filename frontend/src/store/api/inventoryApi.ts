@@ -135,6 +135,24 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       providesTags: (_, __, { id }) => [{ type: 'Transaction', id }],
     }),
+    getInventoryAuditHistory: builder.query<
+      {
+        success: boolean
+        data: {
+          inventoryItemId: string
+          uniqueid: string
+          assetname: string
+          events: any[]
+        }
+      },
+      { id: string; uniqueId?: string }
+    >({
+      query: ({ id, uniqueId }) => ({
+        url: `/inventory/${id}/audit-history`,
+        params: uniqueId ? { uniqueId } : undefined,
+      }),
+      providesTags: (_, __, arg) => [{ type: 'InventoryItem', id: arg.id }],
+    }),
     bulkUpdateInventory: builder.mutation<
       { success: boolean; data: { updatedCount: number; errorCount: number } },
       { itemIds: string[]; updates: Partial<InventoryItem> }
@@ -187,6 +205,7 @@ export const {
   useGetInventoryStatsQuery,
   useReturnItemMutation,
   useGetItemTransactionsQuery,
+  useGetInventoryAuditHistoryQuery,
   useBulkUpdateInventoryMutation,
   useUploadInventoryAttachmentMutation,
   useGetAttachmentUrlQuery,

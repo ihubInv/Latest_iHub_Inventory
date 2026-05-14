@@ -1,10 +1,12 @@
 const mongoose = require('mongoose');
 const InventoryItem = require('../models/InventoryItem');
 const InventoryTransaction = require('../models/InventoryTransaction');
+const AssetAuditLog = require('../models/AssetAuditLog');
 const Request = require('../models/Request');
 const ReturnRequest = require('../models/ReturnRequest');
 const Location = require('../models/Location');
 const SerialNumberCounter = require('../models/SerialNumberCounter');
+const { logAssetAudit } = require('../services/assetAuditLogService');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { AppError } = require('../middleware/errorHandler');
 
@@ -289,6 +291,15 @@ const createInventoryItem = asyncHandler(async (req, res) => {
     .populate('locationid', 'name description address building floor')
     .populate('createdby', 'name email');
 
+  await logAssetAudit({
+    inventoryItemId: inventoryItem._id,
+    assetUniqueId: inventoryItem.uniqueid,
+    action: 'item_created',
+    req,
+    remarks: 'Asset registered in inventory',
+    metadata: { assetname: inventoryItem.assetname },
+  });
+
   res.status(201).json({
     success: true,
     message: 'Inventory item created successfully',
@@ -308,6 +319,12 @@ const updateInventoryItem = asyncHandler(async (req, res) => {
       message: 'Inventory item not found'
     });
   }
+
+  const bodyKeys = Object.keys(req.body).filter((k) => req.body[k] !== undefined);
+  const beforeVals = {};
+  bodyKeys.forEach((key) => {
+    beforeVals[key] = inventoryItem[key];
+  });
 
   // Update fields
   Object.keys(req.body).forEach(key => {
@@ -334,6 +351,36 @@ const updateInventoryItem = asyncHandler(async (req, res) => {
   inventoryItem.lastmodifieddate = new Date();
 
   await inventoryItem.save();
+
+  const serializeAuditValue = (val) => {
+    if (val === undefined || val === null) return null;
+    if (val instanceof Date) return val.toISOString();
+    if (typeof val === 'object' && val !== null && val._id) return String(val._id);
+    return val;
+  };
+  const auditValuesEqual = (a, b) =>
+    JSON.stringify(serializeAuditValue(a)) === JSON.stringify(serializeAuditValue(b));
+
+  const changes = [];
+  bodyKeys.forEach((key) => {
+    const from = beforeVals[key];
+    const to = inventoryItem[key];
+    if (!auditValuesEqual(from, to)) {
+      changes.push({ field: key, from: serializeAuditValue(from), to: serializeAuditValue(to) });
+    }
+  });
+
+  if (changes.length) {
+    await logAssetAudit({
+      inventoryItemId: inventoryItem._id,
+      assetUniqueId: inventoryItem.uniqueid,
+      action: 'item_updated',
+      req,
+      changes,
+      remarks: '',
+      metadata: { changeCount: changes.length },
+    });
+  }
 
   const populatedItem = await InventoryItem.findById(inventoryItem._id)
     .populate('assetcategoryid', 'name type')
@@ -372,6 +419,19 @@ const deleteInventoryItem = asyncHandler(async (req, res) => {
   const itemId = req.params.id;
 
   try {
+    await logAssetAudit({
+      inventoryItemId: inventoryItem._id,
+      assetUniqueId: inventoryItem.uniqueid,
+      action: 'item_deleted',
+      req,
+      remarks: 'Asset record removed from inventory',
+      metadata: {
+        assetname: inventoryItem.assetname,
+        status: inventoryItem.status,
+        issuedto: inventoryItem.issuedto,
+      },
+    });
+
     // Start a transaction to ensure all deletions succeed or none do
     const session = await mongoose.startSession();
     await session.withTransaction(async () => {
@@ -726,6 +786,130 @@ const getAvailableAssetNames = asyncHandler(async (req, res) => {
   });
 });
 
+function formatUserSnapshot(u) {
+  if (!u) return null;
+  if (typeof u === 'object') {
+    return {
+      name: u.name || '—',
+      email: u.email || '—',
+      role: u.role || null,
+      department: u.department || null,
+    };
+  }
+  return { name: String(u), email: null, role: null, department: null };
+}
+
+function humanTransactionSummary(t) {
+  const type = t.transactiontype;
+  const assignee = t.issuedto && typeof t.issuedto === 'object' ? t.issuedto.name : null;
+  if (type === 'issue') return assignee ? `Issued to ${assignee}` : 'Issued to assignee';
+  if (type === 'return') return assignee ? `Return processed (${assignee})` : 'Returned to inventory';
+  if (type === 'purchase') return 'Initial receipt / added to inventory';
+  if (type === 'adjustment') return 'Stock adjustment';
+  if (type === 'disposal') return 'Disposal';
+  if (type === 'maintenance') return 'Maintenance';
+  return `Transaction: ${type}`;
+}
+
+function humanAuditSummary(a) {
+  const map = {
+    item_created: 'Asset created',
+    item_updated: 'Asset details updated',
+    item_deleted: 'Asset deleted from inventory',
+  };
+  return map[a.action] || a.action.replace(/_/g, ' ');
+}
+
+// @desc    Chronological audit history (transactions + structured audit log)
+// @route   GET /api/inventory/:id/audit-history
+// @access  Private (Admin, Stock Manager)
+const getAssetAuditHistory = asyncHandler(async (req, res) => {
+  let item = await InventoryItem.findById(req.params.id).select('uniqueid assetname');
+  const rawUniqueId =
+    (typeof req.query.uniqueId === 'string' && req.query.uniqueId.trim()) ||
+    (typeof req.query.uniqueid === 'string' && req.query.uniqueid.trim()) ||
+    '';
+  const qUnique = String(rawUniqueId).trim();
+
+  const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const uniqueIdPattern = qUnique
+    ? new RegExp(`^${escapeRegex(qUnique).replace(/\s+/g, '\\s+')}$`, 'i')
+    : null;
+
+  if (!item && qUnique) {
+    item = await InventoryItem.findOne({
+      $or: [{ uniqueid: qUnique }, { uniqueid: uniqueIdPattern }],
+    }).select('uniqueid assetname');
+  }
+  if (!item) {
+    return res.status(404).json({
+      success: false,
+      message: 'Inventory item not found',
+    });
+  }
+
+  const itemId = item._id;
+
+  const [audits, txs] = await Promise.all([
+    AssetAuditLog.find({ inventoryitemid: itemId }).sort({ occurredAt: 1 }).lean(),
+    InventoryTransaction.find({ inventoryitemid: itemId })
+      .sort({ transactiondate: 1, createdAt: 1 })
+      .populate('issuedto', 'name email department role')
+      .populate('issuedby', 'name email department role')
+      .lean(),
+  ]);
+
+  const events = [];
+
+  txs.forEach((t) => {
+    events.push({
+      source: 'transaction',
+      id: String(t._id),
+      at: t.transactiondate || t.createdAt,
+      kind: t.transactiontype,
+      summary: humanTransactionSummary(t),
+      actor: formatUserSnapshot(t.issuedby),
+      assignee: formatUserSnapshot(t.issuedto),
+      quantity: t.quantity,
+      previousQuantity: t.previousquantity,
+      newQuantity: t.newquantity,
+      purpose: t.purpose || null,
+      remarks: t.notes || null,
+      transactionStatus: t.status,
+      condition: t.condition || null,
+      expectedReturnDate: t.expectedreturndate || null,
+      actualReturnDate: t.actualreturndate || null,
+    });
+  });
+
+  audits.forEach((a) => {
+    events.push({
+      source: 'audit',
+      id: String(a._id),
+      at: a.occurredAt,
+      kind: a.action,
+      summary: humanAuditSummary(a),
+      actor: a.actor,
+      subject: a.subject || null,
+      changes: a.changes || [],
+      remarks: a.remarks || null,
+      metadata: a.metadata || null,
+    });
+  });
+
+  events.sort((x, y) => new Date(x.at) - new Date(y.at));
+
+  res.json({
+    success: true,
+    data: {
+      inventoryItemId: String(item._id),
+      uniqueid: item.uniqueid,
+      assetname: item.assetname,
+      events,
+    },
+  });
+});
+
 module.exports = {
   getInventoryItems,
   getInventoryItem,
@@ -740,5 +924,6 @@ module.exports = {
   getInventoryTransactions,
   bulkUpdateInventoryItems,
   getAvailableAssetNames,
-  getNextSerialPreview
+  getNextSerialPreview,
+  getAssetAuditHistory,
 };

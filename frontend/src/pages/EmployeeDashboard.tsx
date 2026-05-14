@@ -31,6 +31,7 @@ import {
   MapPin
 } from 'lucide-react'
 import ReturnAssetModal from '../components/requests/ReturnAssetModal'
+import { returnRequestMatchesInventoryItem, getInventoryItemIdFromRef } from '../utils/returnRequestUtils'
 
 const EmployeeDashboard: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth)
@@ -61,14 +62,14 @@ const EmployeeDashboard: React.FC = () => {
   // Check if an asset has a pending return request
   const hasPendingReturnRequest = (assetId: string) => {
     return returnRequestsResponse?.data?.some(
-      (req: any) => req.inventoryitemid === assetId && req.status === 'pending'
+      (req: any) => req.status === 'pending' && returnRequestMatchesInventoryItem(req, assetId)
     )
   }
 
   // Check if an asset has an approved return request (should be hidden)
   const hasApprovedReturnRequest = (assetId: string) => {
     return returnRequestsResponse?.data?.some(
-      (req: any) => req.inventoryitemid === assetId && req.status === 'approved'
+      (req: any) => req.status === 'approved' && returnRequestMatchesInventoryItem(req, assetId)
     )
   }
   
@@ -627,7 +628,7 @@ const EmployeeDashboard: React.FC = () => {
                             {request.status === 'approved' && (
                               <>
                                 {' Approved ' + formatRelativeDate(request.reviewedat)}
-                                {request.inventoryitemid ? (
+                                {getInventoryItemIdFromRef(request.inventoryitemid ?? request.inventoryItemId) ? (
                                   <span className="ml-2 text-green-600 text-xs font-medium">• Item Issued 📦</span>
                                 ) : (
                                   <span className="ml-2 text-blue-600 text-xs">• Ready to Issue</span>
@@ -655,17 +656,25 @@ const EmployeeDashboard: React.FC = () => {
                     )}
 
                     {/* Return Asset Button for Approved & Issued Items */}
-                    {request.status === 'approved' && request.inventoryitemid && (
+                    {(() => {
+                      const rawInv = request.inventoryitemid ?? request.inventoryItemId
+                      const invId = getInventoryItemIdFromRef(rawInv)
+                      if (request.status !== 'approved' || !invId || hasApprovedReturnRequest(invId)) return null
+                      const assetName =
+                        typeof rawInv === 'object' && rawInv !== null && (rawInv as { assetname?: string }).assetname
+                          ? (rawInv as { assetname?: string }).assetname || request.itemtype
+                          : request.itemtype
+                      return (
                       <div className="mt-3">
-                        {hasPendingReturnRequest(request.inventoryitemid) ? (
+                        {hasPendingReturnRequest(invId) ? (
                           <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
                             <p className="text-xs text-yellow-800 font-medium">Return Request Pending</p>
                           </div>
                         ) : (
                           <button
                             onClick={() => handleOpenReturnModal({
-                              id: request.inventoryitemid,
-                              name: request.itemtype,
+                              id: invId,
+                              name: assetName,
                               issuedDate: request.reviewedat,
                               expectedReturn: null
                             })}
@@ -676,7 +685,8 @@ const EmployeeDashboard: React.FC = () => {
                           </button>
                         )}
                       </div>
-                    )}
+                      )
+                    })()}
                   </div>
                 )
               })

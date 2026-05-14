@@ -1,5 +1,8 @@
 import React from 'react';
-import { X, Package, Calendar, DollarSign, FileText, TrendingDown } from 'lucide-react';
+import { X, Package, Calendar, DollarSign, FileText, TrendingDown, History } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
+import AssetAuditTimeline from './AssetAuditTimeline';
 
 interface ViewInventoryProps {
   item: any;
@@ -8,6 +11,10 @@ interface ViewInventoryProps {
 
 const ViewInventory: React.FC<ViewInventoryProps> = ({ item, onClose }) => {
   if (!item) return null;
+
+  const { user } = useSelector((state: RootState) => state.auth);
+  const canViewAudit = user?.role === 'admin' || user?.role === 'stock-manager';
+  const inventoryItemId = item.id || (item as { _id?: string })._id;
 
   // Helper function to safely format dates
   const formatDate = (dateValue: any, includeTime: boolean = false): string => {
@@ -372,6 +379,20 @@ const ViewInventory: React.FC<ViewInventoryProps> = ({ item, onClose }) => {
                 {getDisplayValue(item.description)}
               </div>
             </div>
+
+            {/* Asset audit history (admin / stock manager) */}
+            {canViewAudit && inventoryItemId && (
+              <div className="bg-white rounded-2xl border border-gray-200 p-6">
+                <div className="flex items-center space-x-2 mb-6">
+                  <History className="w-5 h-5 text-violet-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Asset audit history</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  Full chronological trail: receipts, issues, returns, and recorded field updates.
+                </p>
+                <AssetAuditTimeline inventoryItemId={String(inventoryItemId)} uniqueId={item.uniqueid} />
+              </div>
+            )}
 
             {/* Attachments Section */}
             {attachments && attachments.length > 0 && (

@@ -13,7 +13,8 @@ const {
   getInventoryTransactions,
   bulkUpdateInventoryItems,
   getAvailableAssetNames,
-  getNextSerialPreview
+  getNextSerialPreview,
+  getAssetAuditHistory
 } = require('../controllers/inventoryController');
 const { protect, authorize } = require('../middleware/auth');
 const { validateInventoryItem, validateObjectId, validatePagination, validateSearch, validateDateRange } = require('../middleware/validation');
@@ -311,6 +312,18 @@ router.get('/issued', getIssuedItems);
 router.get('/stats', getInventoryStats);
 
 /**
+ * Sub-routes for /:id/* must be registered BEFORE router.get('/:id', ...)
+ * so paths like /:id/audit-history are not captured by the single-parameter route.
+ */
+router.get('/:id/transactions', validateObjectId('id'), validatePagination, getInventoryTransactions);
+router.get(
+  '/:id/audit-history',
+  authorize('admin', 'stock-manager'),
+  validateObjectId('id'),
+  getAssetAuditHistory
+);
+
+/**
  * @swagger
  * /api/inventory/{id}:
  *   get:
@@ -408,7 +421,6 @@ router.get('/:id', validateObjectId('id'), getInventoryItem);
  *       500:
  *         $ref: '#/components/responses/ServerError'
  */
-router.get('/:id/transactions', validateObjectId('id'), validatePagination, getInventoryTransactions);
 
 // Public routes (for all authenticated users)
 router.get('/', validatePagination, validateSearch, getInventoryItems);

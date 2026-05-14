@@ -8,6 +8,7 @@ import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import ReturnAssetModal from './ReturnAssetModal'
 import RequestApprovalModal from './RequestApprovalModal'
+import { getInventoryItemIdFromRef, returnRequestMatchesInventoryItem } from '../../utils/returnRequestUtils'
 
 interface RequestActionModalProps {
   isOpen: boolean
@@ -151,14 +152,14 @@ const RequestManagement: React.FC = () => {
 
   const hasPendingReturnRequest = (assetId: string) => {
     return returnRequestsResponse?.data?.some(
-      (req: any) => req.inventoryitemid === assetId && req.status === 'pending'
+      (req: any) => req.status === 'pending' && returnRequestMatchesInventoryItem(req, assetId)
     )
   }
 
   // Check if an asset has an approved return request (should be hidden)
   const hasApprovedReturnRequest = (assetId: string) => {
     return returnRequestsResponse?.data?.some(
-      (req: any) => req.inventoryitemid === assetId && req.status === 'approved'
+      (req: any) => req.status === 'approved' && returnRequestMatchesInventoryItem(req, assetId)
     )
   }
 
@@ -344,17 +345,27 @@ const RequestManagement: React.FC = () => {
                     </div>
 
                     {/* Return Asset Button for Approved & Issued Items (Employee Only) */}
-                    {!canManageRequests && request.status === 'approved' && request.inventoryitemid && !hasApprovedReturnRequest(request.inventoryitemid) && (
+                    {(() => {
+                      const rawInv = request.inventoryitemid ?? request.inventoryItemId
+                      const invId = getInventoryItemIdFromRef(rawInv)
+                      if (canManageRequests || request.status !== 'approved' || !invId || hasApprovedReturnRequest(invId)) {
+                        return null
+                      }
+                      const assetName =
+                        typeof rawInv === 'object' && rawInv !== null && (rawInv as { assetname?: string }).assetname
+                          ? (rawInv as { assetname?: string }).assetname || request.itemtype
+                          : request.itemtype
+                      return (
                       <div className="mt-4">
-                        {hasPendingReturnRequest(request.inventoryitemid) ? (
+                        {hasPendingReturnRequest(invId) ? (
                           <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
                             <p className="text-xs text-yellow-800 font-medium">Return Request Pending</p>
                           </div>
                         ) : (
                           <button
                             onClick={() => handleOpenReturnModal({
-                              id: request.inventoryitemid,
-                              name: request.itemtype,
+                              id: invId,
+                              name: assetName,
                               issuedDate: request.reviewedat,
                               expectedReturn: null
                             })}
@@ -365,7 +376,8 @@ const RequestManagement: React.FC = () => {
                           </button>
                         )}
                       </div>
-                    )}
+                      )
+                    })()}
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${

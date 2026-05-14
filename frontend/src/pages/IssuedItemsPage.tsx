@@ -1,8 +1,5 @@
 import React, { useState } from 'react'
-import { useSelector } from 'react-redux'
-import type { RootState } from '../store'
 import { useGetMyRequestsQuery, useDeleteRequestMutation } from '../store/api/requestsApi'
-import { useGetInventoryItemsQuery } from '../store/api/inventoryApi'
 import { useGetMyReturnRequestsQuery } from '../store/api/returnRequestsApi'
 import { formatRelativeDate } from '../utils/dateUtils'
 import { Package, Clock, User, Calendar, MapPin, ArrowLeft, PackageX, Pencil, Trash2 } from 'lucide-react'
@@ -10,14 +7,14 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import ReturnAssetModal from '../components/requests/ReturnAssetModal'
 import EditPendingRequestModal, { getRequestDocumentId } from '../components/requests/EditPendingRequestModal'
+import { getInventoryItemIdFromRef, returnRequestMatchesInventoryItem } from '../utils/returnRequestUtils'
 
 const IssuedItemsPage: React.FC = () => {
-  const { user } = useSelector((state: RootState) => state.auth)
-  const [activeTab, setActiveTab] = useState<'issued' | 'requested'>('issued')
   const [returnModalOpen, setReturnModalOpen] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<any>(null)
   const [editingRequest, setEditingRequest] = useState<any | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [requestStatusTab, setRequestStatusTab] = useState<'pending' | 'approved' | 'rejected'>('pending')
 
   const [deleteRequest] = useDeleteRequestMutation()
 
@@ -27,9 +24,6 @@ const IssuedItemsPage: React.FC = () => {
     limit: 100, // Get all requests for this page
     sort: '-submittedat'
   })
-
-  // Fetch all inventory items to filter issued items for this employee
-  const { data: inventoryItemsResponse, isLoading: inventoryItemsLoading, error: inventoryItemsError } = useGetInventoryItemsQuery({})
 
   // Fetch return requests
   const { data: returnRequestsResponse } = useGetMyReturnRequestsQuery({
@@ -66,38 +60,34 @@ const IssuedItemsPage: React.FC = () => {
   // Check if an asset has a pending return request
   const hasPendingReturnRequest = (assetId: string) => {
     return returnRequestsResponse?.data?.some(
-      (req: any) => req.inventoryitemid === assetId && req.status === 'pending'
+      (req: any) => req.status === 'pending' && returnRequestMatchesInventoryItem(req, assetId)
     )
   }
 
-  // Check if an asset has an approved return request (should be hidden)
-  const hasApprovedReturnRequest = (assetId: string) => {
+  /** Return approved: inventory is back — original asset request stays `approved` in DB, so hide it here. */
+  const hasApprovedReturnRequest = (assetId: string | undefined) => {
+    if (!assetId) return false
     return returnRequestsResponse?.data?.some(
-      (req: any) => req.inventoryitemid === assetId && req.status === 'approved'
+      (r: any) => r.status === 'approved' && returnRequestMatchesInventoryItem(r, assetId)
     )
   }
-
-  const issuedToMeItems = React.useMemo(() => {
-    const allItems = inventoryItemsResponse?.data || []
-    return allItems.filter(item => 
-      item.status === 'issued' && 
-      (item.issuedto === user?.name || item.issuedto?.toLowerCase().includes(user?.name?.toLowerCase() || '')) &&
-      !hasApprovedReturnRequest(item.id)
-    ).map(item => ({
-      id: item.id,
-      name: item.assetname,
-      issuedDate: item.issueddate || item.dateofissue,
-      issuedBy: item.issuedby,
-      location: item.locationofitem,
-      purpose: item.description?.includes('PURPOSE:') ? 
-        item.description.match(/PURPOSE: (.+)/)?.[1] || 'Unknown' : 
-        'Approved assignment',
-      expectedReturn: item.expectedreturndate,
-      value: item.totalcost
-    }))
-  }, [inventoryItemsResponse, user?.name, returnRequestsResponse])
 
   const requestItems = myRequests?.data || []
+  const pendingRequests = requestItems.filter((req: any) => req.status === 'pending')
+  const approvedRequests = requestItems.filter((req: any) => {
+    if (req.status !== 'approved') return false
+    const invId = getInventoryItemIdFromRef(req.inventoryitemid ?? req.inventoryItemId)
+    if (!invId) return true
+    return !hasApprovedReturnRequest(invId)
+  })
+  const rejectedRequests = requestItems.filter((req: any) => req.status === 'rejected')
+
+  const filteredRequestItems =
+    requestStatusTab === 'pending'
+      ? pendingRequests
+      : requestStatusTab === 'approved'
+        ? approvedRequests
+        : rejectedRequests
 
 
   const getStatusColor = (status: string) => {
@@ -109,7 +99,7 @@ const IssuedItemsPage: React.FC = () => {
     }
   }
 
-  if (requestsLoading || inventoryItemsLoading) {
+  if (requestsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6">
         <div className="max-w-7xl mx-auto">
@@ -121,7 +111,7 @@ const IssuedItemsPage: React.FC = () => {
     )
   }
 
-  if (requestsError || inventoryItemsError) {
+  if (requestsError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6">
         <div className="max-w-7xl mx-auto">
@@ -160,135 +150,59 @@ const IssuedItemsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Content */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 mb-6">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('issued')}
-              className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'issued'
-                  ? 'text-[#0d559e] border-b-2 border-[#0d559e] bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center space-x-2">
-                <Package className="w-5 h-5" />
-                <span>Issued to me ({issuedToMeItems.length})</span>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('requested')}
-              className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'requested'
-                  ? 'text-[#0d559e] border-b-2 border-[#0d559e] bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center space-x-2">
-                <Clock className="w-5 h-5" />
-                <span>Item Requested  ({requestItems.length})</span>
-              </div>
-            </button>
-          </div>
-
-          {/* Content */}
           <div className="p-6">
-            {activeTab === 'issued' ? (
-              <div>
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Items issued to me</h3>
-                  <p className="text-sm text-gray-600">
-                    Physical assets currently assigned to you (issued through the approval workflow).
-                  </p>
-                </div>
-
-                {issuedToMeItems.length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {issuedToMeItems.map((item, index) => (
-                      <div key={item.id || index} className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <Package className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-gray-900">{item.name}</h4>
-                              <p className="text-sm text-gray-600">Issued assignment</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-gray-900">₹{item.value?.toLocaleString()}</div>
-                            <div className="text-xs text-gray-500">{item.location}</div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                          <div className="flex items-center space-x-2 text-gray-600">
-                            <User className="w-4 h-4" />
-                            <span>Issued by: {item.issuedBy || 'Admin'}</span>
-                          </div>
-                          <div className="flex items-center space-x-2 text-gray-600">
-                            <Calendar className="w-4 h-4" />
-                            <span>{formatRelativeDate(item.issuedDate)}</span>
-                          </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-200">
-                          <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
-                            <MapPin className="w-4 h-4" />
-                            <span>Purpose: {item.purpose || 'Work Assignment'}</span>
-                          </div>
-                          {item.expectedReturn && (
-                            <div className={`text-sm mb-3 ${
-                              new Date(item.expectedReturn) < new Date() ? 'text-red-600' : 'text-gray-600'
-                            }`}>
-                              <Calendar className="w-4 h-4 inline mr-1" />
-                              Return Due: {formatRelativeDate(item.expectedReturn)}
-                            </div>
-                          )}
-                          
-
-                          {/* Return Button */}
-                          {hasPendingReturnRequest(item.id) ? (
-                            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
-                              <p className="text-xs text-yellow-800 font-medium">Return Request Pending</p>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleOpenReturnModal(item)}
-                              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-lg transition-all duration-200 font-medium"
-                            >
-                              <PackageX size={16} />
-                              <span>Return Asset</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-medium text-gray-900 mb-2">No issued items yet</h3>
-                    <p className="text-gray-500">
-                      You don't have any physical assets assigned to you right now.
-                    </p>
-                  </div>
-                )}
+            <div>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Item Requests</h3>
+                <p className="text-sm text-gray-600">
+                  Track the status of your asset requests (pending, approved, rejected)
+                </p>
               </div>
-            ) : (
-              <div>
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Item Requests</h3>
-                  <p className="text-sm text-gray-600">
-                    Track the status of your asset requests
-                  </p>
-                </div>
 
-                {requestItems.length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {requestItems.map((request, index) => (
-                      <div key={getRequestDocumentId(request) || index} className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              <div className="mb-6 border border-gray-200 rounded-lg p-1 bg-gray-50">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setRequestStatusTab('pending')}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      requestStatusTab === 'pending'
+                        ? 'bg-white text-[#0d559e] shadow-sm border border-blue-100'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Pending ({pendingRequests.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRequestStatusTab('approved')}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      requestStatusTab === 'approved'
+                        ? 'bg-white text-[#0d559e] shadow-sm border border-blue-100'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Approved ({approvedRequests.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRequestStatusTab('rejected')}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      requestStatusTab === 'rejected'
+                        ? 'bg-white text-[#0d559e] shadow-sm border border-blue-100'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Rejected ({rejectedRequests.length})
+                  </button>
+                </div>
+              </div>
+
+              {filteredRequestItems.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {filteredRequestItems.map((request, index) => (
+                    <div key={getRequestDocumentId(request) || index} className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                         {/* Header - match issued-card layout */}
                         <div className="flex items-start justify-between mb-4 gap-3">
                           <div className="flex items-center space-x-3 min-w-0">
@@ -426,27 +340,28 @@ const IssuedItemsPage: React.FC = () => {
                             </div>
                           )}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-medium text-gray-900 mb-2">No Requests Found</h3>
-                    <p className="text-gray-500 mb-4">
-                      You haven't made any asset requests yet.
-                    </p>
-                    <Link 
-                      to="/create-request"
-                      className="inline-flex items-center px-4 py-2 bg-[#0d559e] text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <Package className="w-4 h-4 mr-2" />
-                      Create Your First Request
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-medium text-gray-900 mb-2">
+                    No {requestStatusTab} requests found
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    No requests are available in this status right now.
+                  </p>
+                  <Link 
+                    to="/create-request"
+                    className="inline-flex items-center px-4 py-2 bg-[#0d559e] text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Create Your First Request
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -454,10 +369,6 @@ const IssuedItemsPage: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
           <div className="flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                <Package className="w-4 h-4 text-blue-600" />
-                <span>Issued to me: {issuedToMeItems.length}</span>
-              </div>
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4 text-gray-600" />
                 <span>Total Requests: {requestItems.length}</span>
