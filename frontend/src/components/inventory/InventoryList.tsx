@@ -7,7 +7,7 @@ import {
 } from '../../store/api';
 import { useAppSelector } from '../../store/hooks';
 import { AssetConditionChart, CategoryDistributionChart } from '../charts';
-import { Search, Filter, Download, Edit, Trash2, Eye, Package, Save, X, Zap, Calculator, BarChart3, List, AlertTriangle, CheckSquare, Square, FileSpreadsheet, FileText, Image, Sliders, RotateCcw, ChevronDown, History } from 'lucide-react';
+import { Search, Filter, Download, Edit, Trash2, Eye, Package, Save, X, Zap, Calculator, BarChart3, List, AlertTriangle, CheckSquare, Square, FileSpreadsheet, FileText, Image, Sliders, RotateCcw, ChevronDown, History, MapPin } from 'lucide-react';
 import { CRUDToasts } from '../../services/toastService';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -28,6 +28,7 @@ import UpdateInventory from './UpdateInventory';
 import AssetAuditHistoryModal from './AssetAuditHistoryModal';
 import StatusDropdown from '../common/StatusDropdown';
 import CategoryDropdown from '../common/CategoryDropdown';
+import AttractiveDropdown from '../common/AttractiveDropdown';
 // import ConditionDropdown from '../common/ConditionDropdown';
 import DateRangePicker from '../common/DateRangePicker';
 import InventoryPivotTable from './InventoryPivotTable';
@@ -120,6 +121,9 @@ const InventoryList: React.FC = () => {
   });
   const [filterCategory, setFilterCategory] = useState(() => {
     return localStorage.getItem('inventoryListFilterCategory') || 'all';
+  });
+  const [filterLocation, setFilterLocation] = useState(() => {
+    return localStorage.getItem('inventoryListFilterLocation') || 'all';
   });
   const [startDate, setStartDate] = useState<Date | null>(() => {
     const saved = localStorage.getItem('inventoryListStartDate');
@@ -270,6 +274,10 @@ const InventoryList: React.FC = () => {
   }, [filterCategory]);
 
   useEffect(() => {
+    localStorage.setItem('inventoryListFilterLocation', filterLocation);
+  }, [filterLocation]);
+
+  useEffect(() => {
     if (startDate) {
       localStorage.setItem('inventoryListStartDate', startDate.toISOString());
     } else {
@@ -292,6 +300,30 @@ const InventoryList: React.FC = () => {
 
 
 
+  const locationDropdownOptions = React.useMemo(() => {
+    const items = inventoryItems || [];
+    const hasUnset = items.some((item: any) => !String(item.locationofitem || '').trim());
+    const names = new Set<string>();
+    for (const item of items) {
+      const loc = String(item.locationofitem || '').trim();
+      if (loc) names.add(loc);
+    }
+    const sorted = [...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    const opts = sorted.map((loc) => ({
+      value: loc,
+      label: loc,
+      description: 'Filter by asset location',
+    }));
+    if (hasUnset) {
+      opts.unshift({
+        value: '__none__',
+        label: '(No location set)',
+        description: 'Items with empty location',
+      });
+    }
+    return opts;
+  }, [inventoryItems]);
+
   const filteredItems = inventoryItems?.filter((item: any) => {
     const matchesSearch = item.assetname.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.uniqueid.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -303,6 +335,12 @@ const InventoryList: React.FC = () => {
 
     const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
     const matchesCategory = filterCategory === 'all' || item.assetcategory === filterCategory;
+
+    const itemLoc = String(item.locationofitem || '').trim();
+    const matchesLocation =
+      filterLocation === 'all' ||
+      (filterLocation === '__none__' && itemLoc === '') ||
+      (filterLocation !== 'all' && filterLocation !== '__none__' && itemLoc === filterLocation);
     
     // Date range filtering - check if item's dateofentry falls within the selected range
     const matchesDateRange = (() => {
@@ -346,7 +384,7 @@ const InventoryList: React.FC = () => {
       return true;
     })();
 
-    return matchesSearch && matchesStatus && matchesCategory && matchesDateRange;
+    return matchesSearch && matchesStatus && matchesCategory && matchesLocation && matchesDateRange;
   });
 
   const bulkSelectedRows = React.useMemo(
@@ -1408,6 +1446,7 @@ const InventoryList: React.FC = () => {
     setSearchTerm('');
     setFilterStatus('all');
     setFilterCategory('all');
+    setFilterLocation('all');
     setStartDate(null);
     setEndDate(null);
     toast.success('All filters have been reset!');
@@ -1716,7 +1755,7 @@ const InventoryList: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <Filter className="w-5 h-5 text-gray-600" />
                       <h3 className="text-lg font-semibold text-gray-800">Filter</h3>
-                      {(searchTerm || filterStatus !== 'all' || filterCategory !== 'all') && (
+                      {(searchTerm || filterStatus !== 'all' || filterCategory !== 'all' || filterLocation !== 'all') && (
                         <span className="px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
                           Active
                         </span>
@@ -1747,12 +1786,12 @@ const InventoryList: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                    <div className="relative">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="relative xl:col-span-1">
                       <Search className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={16} />
                       <input
                         type="text"
-                        placeholder="Search inventory..."
+                        placeholder="Search name, ID, vendor, category, location..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1777,6 +1816,18 @@ const InventoryList: React.FC = () => {
                         placeholder="Filter by category"
                         size="sm"
                         searchable
+                      />
+                    </div>
+
+                    <div className="min-w-48">
+                      <AttractiveDropdown
+                        options={locationDropdownOptions}
+                        value={filterLocation === 'all' ? '' : filterLocation}
+                        onChange={(value) => setFilterLocation(value || 'all')}
+                        placeholder="All locations"
+                        icon={<MapPin className="w-4 h-4 text-gray-500" />}
+                        searchable
+                        size="sm"
                       />
                     </div>
 
