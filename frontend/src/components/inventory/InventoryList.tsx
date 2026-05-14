@@ -138,10 +138,12 @@ const InventoryList: React.FC = () => {
   
   // Delete functionality states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showForceDeleteModal, setShowForceDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkForceDeleteAck, setBulkForceDeleteAck] = useState(false);
   
   // Update functionality states
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -346,6 +348,18 @@ const InventoryList: React.FC = () => {
 
     return matchesSearch && matchesStatus && matchesCategory && matchesDateRange;
   });
+
+  const bulkSelectedRows = React.useMemo(
+    () =>
+      selectedItems
+        .map((itemId) => filteredItems.find((i: any) => i.id === itemId))
+        .filter(Boolean) as any[],
+    [selectedItems, filteredItems]
+  );
+  const bulkSelectionHasIssued = React.useMemo(
+    () => bulkSelectedRows.some((r) => r.status === 'issued'),
+    [bulkSelectedRows]
+  );
 
   // Create categories array for the dropdown - only include categories that have filtered items
   const categoryNames = [...new Set(filteredItems.map((item: any) => item.assetcategory))].filter(Boolean);
@@ -574,18 +588,46 @@ const InventoryList: React.FC = () => {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
-    
+
     setIsDeleting(true);
+    const loadingToast = CRUDToasts.deleting('inventory item');
     try {
-      const loadingToast = CRUDToasts.deleting('inventory item');
       await deleteInventoryItem(itemToDelete.id).unwrap();
       toast.dismiss(loadingToast);
       setShowDeleteModal(false);
       setItemToDelete(null);
       CRUDToasts.deleted('inventory item');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error deleting item:', error);
-      CRUDToasts.deleteError('inventory item', 'Please try again');
+      toast.dismiss(loadingToast);
+      const err = error as { data?: { code?: string; message?: string } };
+      if (err?.data?.code === 'ITEM_IN_USE') {
+        setShowDeleteModal(false);
+        setShowForceDeleteModal(true);
+      } else {
+        CRUDToasts.deleteError('inventory item', err?.data?.message || 'Please try again');
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleConfirmForceDelete = async () => {
+    if (!itemToDelete) return;
+
+    setIsDeleting(true);
+    const loadingToast = CRUDToasts.deleting('inventory item');
+    try {
+      await deleteInventoryItem({ id: itemToDelete.id, force: true }).unwrap();
+      toast.dismiss(loadingToast);
+      setShowForceDeleteModal(false);
+      setItemToDelete(null);
+      CRUDToasts.deleted('inventory item');
+    } catch (error: unknown) {
+      console.error('Error force-deleting item:', error);
+      toast.dismiss(loadingToast);
+      const err = error as { data?: { message?: string } };
+      CRUDToasts.deleteError('inventory item', err?.data?.message || 'Please try again');
     } finally {
       setIsDeleting(false);
     }
@@ -627,20 +669,30 @@ const InventoryList: React.FC = () => {
 
   const handleBulkDelete = () => {
     if (selectedItems.length === 0) return;
+    setBulkForceDeleteAck(false);
     setShowBulkDeleteModal(true);
   };
 
   const handleConfirmBulkDelete = async () => {
+    if (bulkSelectionHasIssued && !bulkForceDeleteAck) {
+      toast.error('Tick the confirmation box to delete issued assets and purge all related records.');
+      return;
+    }
+
+    const count = selectedItems.length;
     setIsDeleting(true);
     try {
-      const loadingToast = CRUDToasts.bulkDeleting(selectedItems.length);
+      const loadingToast = CRUDToasts.bulkDeleting(count);
       for (const itemId of selectedItems) {
-        await deleteInventoryItem(itemId).unwrap();
+        const row = filteredItems.find((i: any) => i.id === itemId) as any;
+        const force = row?.status === 'issued';
+        await deleteInventoryItem({ id: itemId, force }).unwrap();
       }
       toast.dismiss(loadingToast);
       setShowBulkDeleteModal(false);
+      setBulkForceDeleteAck(false);
       setSelectedItems([]);
-      CRUDToasts.bulkDeleted(selectedItems.length);
+      CRUDToasts.bulkDeleted(count);
     } catch (error) {
       console.error('Error deleting items:', error);
       CRUDToasts.bulkDeleteError('Please try again');
@@ -1990,66 +2042,6 @@ const InventoryList: React.FC = () => {
                 </div>
 
 
-              {/* Bulk Delete Confirmation Modal */}
-              {showBulkDeleteModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm transition-all duration-300">
-                  <div className="w-full max-w-md p-6 mx-4 bg-white shadow-2xl rounded-2xl">
-                    <div className="flex items-center mb-4">
-                      <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full">
-                        <AlertTriangle className="w-6 h-6 text-red-600" />
-                      </div>
-                      <div className="ml-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Delete Multiple Items</h3>
-                        <p className="text-sm text-gray-600">This action cannot be undone</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mb-6">
-                      <p className="text-gray-700">
-                        Are you sure you want to delete <span className="font-semibold">{selectedItems.length} selected item{selectedItems.length > 1 ? 's' : ''}</span>?
-                      </p>
-                      <div className="mt-3 overflow-y-auto max-h-32">
-                        <ul className="space-y-1 text-sm text-gray-600">
-                          {selectedItems.slice(0, 5).map(itemId => {
-                            const item = filteredItems.find(i => i.id === itemId);
-                            return (
-                              <li key={itemId} className="flex items-center">
-                                <span className="w-2 h-2 mr-2 bg-red-400 rounded-full"></span>
-                                {item?.assetname} ({item?.uniqueid})
-                              </li>
-                            );
-                          })}
-                          {selectedItems.length > 5 && (
-                            <li className="italic text-gray-400">
-                              ... and {selectedItems.length - 5} more items
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div className="flex space-x-3">
-                      <button
-                        onClick={() => {
-                          setShowBulkDeleteModal(false);
-                        }}
-                        className="flex-1 px-4 py-2 text-gray-700 transition-colors bg-gray-100 rounded-lg hover:bg-gray-200"
-                        disabled={isDeleting}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleConfirmBulkDelete}
-                        disabled={isDeleting}
-                        className="flex-1 px-4 py-2 text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isDeleting ? 'Deleting...' : `Delete All ₹ {selectedItems.length}`}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Floating Action Bar - appears when items are selected */}
               {selectedItems.length > 0 && (user?.role === 'admin' || user?.role === 'stock-manager') && (
                 <div className="fixed z-40 transform -translate-x-1/2 bottom-6 left-1/2">
@@ -2105,6 +2097,12 @@ const InventoryList: React.FC = () => {
               <p className="mt-2 text-sm text-gray-500">
                 Asset ID: {itemToDelete?.uniqueid}
               </p>
+              {itemToDelete?.status === 'issued' && (
+                <p className="p-3 mt-3 text-sm text-amber-900 border border-amber-200 rounded-lg bg-amber-50">
+                  This asset is <strong>issued</strong>
+                  {itemToDelete?.issuedto ? ` to ${itemToDelete.issuedto}` : ''}. If delete is blocked, you will be asked to confirm a full purge of all related records.
+                </p>
+              )}
             </div>
 
             <div className="flex space-x-3">
@@ -2129,6 +2127,57 @@ const InventoryList: React.FC = () => {
           </div>
         </div>
         </>
+      )}
+
+      {showForceDeleteModal && itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm transition-all duration-300">
+          <div className="w-full max-w-lg p-6 mx-4 bg-white shadow-2xl rounded-2xl">
+            <div className="flex items-center mb-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-amber-100 rounded-full">
+                <AlertTriangle className="w-6 h-6 text-amber-700" />
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-gray-900">Asset in use — purge anyway?</h3>
+                <p className="text-sm text-gray-600">Permanent removal from the system</p>
+              </div>
+            </div>
+            <div className="mb-6 space-y-3 text-sm text-gray-700">
+              <p>
+                <span className="font-semibold">{itemToDelete.assetname}</span> ({itemToDelete.uniqueid}) is{' '}
+                <span className="font-medium">issued</span>
+                {itemToDelete.issuedto ? ` to ${itemToDelete.issuedto}` : ''}. Deleting it will permanently remove:
+              </p>
+              <ul className="pl-5 list-disc text-gray-600 space-y-1">
+                <li>The inventory record</li>
+                <li>All inventory transactions for this asset</li>
+                <li>All audit history entries for this asset</li>
+                <li>Linked asset requests and return requests that reference this asset</li>
+              </ul>
+              <p className="font-medium text-red-700">This cannot be undone.</p>
+            </div>
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForceDeleteModal(false);
+                  setItemToDelete(null);
+                }}
+                className="flex-1 px-4 py-2 text-gray-700 transition-colors bg-gray-100 rounded-lg hover:bg-gray-200"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmForceDelete}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2 text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? 'Deleting…' : 'Delete and purge everything'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Bulk Delete Confirmation Modal */}
@@ -2167,12 +2216,26 @@ const InventoryList: React.FC = () => {
                   )}
                 </ul>
               </div>
+              {bulkSelectionHasIssued && (
+                <label className="flex items-start gap-3 p-3 mt-4 border border-amber-200 rounded-lg cursor-pointer bg-amber-50">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={bulkForceDeleteAck}
+                    onChange={(e) => setBulkForceDeleteAck(e.target.checked)}
+                  />
+                  <span className="text-sm text-amber-950">
+                    Selection includes <strong>issued</strong> assets. I confirm permanent deletion: each issued row will be removed along with its transactions, audit history, linked requests, and return requests.
+                  </span>
+                </label>
+              )}
             </div>
 
             <div className="flex space-x-3">
               <button
                 onClick={() => {
                   setShowBulkDeleteModal(false);
+                  setBulkForceDeleteAck(false);
                 }}
                 className="flex-1 px-4 py-2 text-gray-700 transition-colors bg-gray-100 rounded-lg hover:bg-gray-200"
                 disabled={isDeleting}
@@ -2181,10 +2244,10 @@ const InventoryList: React.FC = () => {
               </button>
               <button
                 onClick={handleConfirmBulkDelete}
-                disabled={isDeleting}
+                disabled={isDeleting || (bulkSelectionHasIssued && !bulkForceDeleteAck)}
                 className="flex-1 px-4 py-2 text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isDeleting ? 'Deleting...' : `Delete All ₹ {selectedItems.length}`}
+                {isDeleting ? 'Deleting...' : `Delete all (${selectedItems.length})`}
               </button>
             </div>
           </div>

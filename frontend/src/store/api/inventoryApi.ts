@@ -73,12 +73,20 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (_, __, { id }) => [{ type: 'InventoryItem', id }, 'InventoryItem'],
     }),
-    deleteInventoryItem: builder.mutation<{ success: boolean; message: string }, string>({
-      query: (id) => ({
-        url: `/inventory/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['InventoryItem'],
+    deleteInventoryItem: builder.mutation<
+      { success: boolean; message: string; code?: string },
+      string | { id: string; force?: boolean }
+    >({
+      query: (arg) => {
+        const id = typeof arg === 'string' ? arg : arg.id
+        const force = typeof arg === 'object' && arg.force === true
+        return {
+          url: `/inventory/${id}`,
+          method: 'DELETE',
+          params: force ? { force: 'true' } : undefined,
+        }
+      },
+      invalidatesTags: ['InventoryItem', 'Request', 'ReturnRequest', 'Transaction'],
     }),
     getAvailableInventoryItems: builder.query<InventoryResponse, PaginationParams>({
       query: (params) => ({

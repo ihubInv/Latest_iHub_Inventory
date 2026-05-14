@@ -396,7 +396,7 @@ const updateInventoryItem = asyncHandler(async (req, res) => {
 });
 
 // @desc    Delete inventory item
-// @route   DELETE /api/inventory/:id
+// @route   DELETE /api/inventory/:id?force=true
 // @access  Private (Admin, Stock Manager)
 const deleteInventoryItem = asyncHandler(async (req, res) => {
   const inventoryItem = await InventoryItem.findById(req.params.id);
@@ -408,58 +408,51 @@ const deleteInventoryItem = asyncHandler(async (req, res) => {
     });
   }
 
-  // Check if item is currently issued
-  if (inventoryItem.status === 'issued') {
+  const forceDelete =
+    req.query.force === 'true' ||
+    req.query.force === '1' ||
+    String(req.query.force || '').toLowerCase() === 'true';
+
+  const isIssued = inventoryItem.status === 'issued';
+
+  if (isIssued && !forceDelete) {
     return res.status(400).json({
       success: false,
-      message: 'Cannot delete item that is currently issued'
+      code: 'ITEM_IN_USE',
+      message:
+        'This asset is currently issued. To remove it from inventory you must confirm a full purge: all transactions, audit history, linked requests, and return requests for this asset will be permanently deleted.',
+      details: {
+        status: inventoryItem.status,
+        issuedto: inventoryItem.issuedto || null,
+        uniqueid: inventoryItem.uniqueid,
+      },
     });
   }
 
-  const itemId = req.params.id;
+  const itemId = inventoryItem._id;
 
+  const session = await mongoose.startSession();
   try {
-    await logAssetAudit({
-      inventoryItemId: inventoryItem._id,
-      assetUniqueId: inventoryItem.uniqueid,
-      action: 'item_deleted',
-      req,
-      remarks: 'Asset record removed from inventory',
-      metadata: {
-        assetname: inventoryItem.assetname,
-        status: inventoryItem.status,
-        issuedto: inventoryItem.issuedto,
-      },
-    });
-
-    // Start a transaction to ensure all deletions succeed or none do
-    const session = await mongoose.startSession();
     await session.withTransaction(async () => {
-      // Delete related inventory transactions
+      await AssetAuditLog.deleteMany({ inventoryitemid: itemId }, { session });
       await InventoryTransaction.deleteMany({ inventoryitemid: itemId }, { session });
-      
-      // Delete related requests
       await Request.deleteMany({ inventoryitemid: itemId }, { session });
-      
-      // Delete related return requests
       await ReturnRequest.deleteMany({ inventoryitemid: itemId }, { session });
-      
-      // Finally delete the inventory item itself
       await InventoryItem.findByIdAndDelete(itemId, { session });
     });
-    
-    await session.endSession();
 
     res.json({
       success: true,
-      message: 'Inventory item and all related records deleted successfully'
+      message: 'Inventory item and all related records deleted successfully',
     });
   } catch (error) {
     console.error('Error during cascade delete:', error);
     res.status(500).json({
       success: false,
-      message: 'Error deleting inventory item and related records'
+      message: 'Error deleting inventory item and related records',
     });
+  } finally {
+    await session.endSession();
   }
 });
 
