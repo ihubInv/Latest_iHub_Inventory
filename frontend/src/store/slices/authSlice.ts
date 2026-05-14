@@ -9,12 +9,21 @@ import { baseApi } from '../api/baseApi'
 import { logoutAction } from '../actions/authActions'
 import { clearAllStorage } from '../../utils/logoutUtils'
 
+const EMPLOYEE_NAV_STORAGE_KEY = 'useEmployeeNavigation'
+
+const readStoredEmployeeNavPreference = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return localStorage.getItem(EMPLOYEE_NAV_STORAGE_KEY) === 'true'
+}
+
 // Interfaces
 interface AuthState {
   user: User | null
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  /** When true, admin/stock-manager see employee sidebar and employee-area routes. */
+  useEmployeeNavigation: boolean
 }
 
 // Helper function to get stored user data
@@ -23,11 +32,18 @@ const getStoredUser = (): User | null => {
   return storedUser ? JSON.parse(storedUser) : null;
 };
 
+const initialEmployeeNavigation = (): boolean => {
+  const u = getStoredUser()
+  if (!u || u.role === 'employee') return false
+  return readStoredEmployeeNavPreference()
+}
+
 const initialState: AuthState = {
   user: getStoredUser(),
   token: localStorage.getItem('token'),
   isAuthenticated: !!localStorage.getItem('token'),
   isLoading: false,
+  useEmployeeNavigation: initialEmployeeNavigation(),
 }
 
 // Async thunks
@@ -180,15 +196,29 @@ const authSlice = createSlice({
       state.user = null
       state.token = null
       state.isAuthenticated = false
+      state.useEmployeeNavigation = false
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      localStorage.removeItem(EMPLOYEE_NAV_STORAGE_KEY)
     },
     setCredentials: (state, action: PayloadAction<{ user: User; token: string }>) => {
       state.user = action.payload.user
       state.token = action.payload.token
       state.isAuthenticated = true
+      state.useEmployeeNavigation = false
       localStorage.setItem('token', action.payload.token)
       localStorage.setItem('user', JSON.stringify(action.payload.user))
+      localStorage.removeItem(EMPLOYEE_NAV_STORAGE_KEY)
+    },
+    setUseEmployeeNavigation: (state, action: PayloadAction<boolean>) => {
+      const role = state.user?.role
+      if (role !== 'admin' && role !== 'stock-manager') return
+      state.useEmployeeNavigation = action.payload
+      if (action.payload) {
+        localStorage.setItem(EMPLOYEE_NAV_STORAGE_KEY, 'true')
+      } else {
+        localStorage.removeItem(EMPLOYEE_NAV_STORAGE_KEY)
+      }
     },
   },
   extraReducers: (builder) => {
@@ -202,8 +232,10 @@ const authSlice = createSlice({
         state.user = action.payload.user
         state.token = action.payload.token
         state.isAuthenticated = true
+        state.useEmployeeNavigation = false
         // Persist user data to localStorage
         localStorage.setItem('user', JSON.stringify(action.payload.user))
+        localStorage.removeItem(EMPLOYEE_NAV_STORAGE_KEY)
       })
       .addCase(login.rejected, (state) => {
         state.isLoading = false
@@ -222,8 +254,10 @@ const authSlice = createSlice({
         state.user = action.payload.user
         state.token = action.payload.token
         state.isAuthenticated = true
+        state.useEmployeeNavigation = false
         // Persist user data to localStorage
         localStorage.setItem('user', JSON.stringify(action.payload.user))
+        localStorage.removeItem(EMPLOYEE_NAV_STORAGE_KEY)
       })
       .addCase(register.rejected, (state) => {
         state.isLoading = false
@@ -235,6 +269,10 @@ const authSlice = createSlice({
       .addCase(getProfile.fulfilled, (state, action) => {
         state.isLoading = false
         state.user = action.payload
+        if (action.payload.role === 'employee') {
+          state.useEmployeeNavigation = false
+          localStorage.removeItem(EMPLOYEE_NAV_STORAGE_KEY)
+        }
         // Persist updated user data to localStorage
         localStorage.setItem('user', JSON.stringify(action.payload))
       })
@@ -243,20 +281,24 @@ const authSlice = createSlice({
         state.user = null
         state.token = null
         state.isAuthenticated = false
+        state.useEmployeeNavigation = false
         localStorage.removeItem('token')
         localStorage.removeItem('user')
+        localStorage.removeItem(EMPLOYEE_NAV_STORAGE_KEY)
       })
       // Logout
       .addCase(logout.fulfilled, (state) => {
         state.user = null
         state.token = null
         state.isAuthenticated = false
+        state.useEmployeeNavigation = false
         // Storage already cleared in the logout thunk
       })
       .addCase(logout.rejected, (state) => {
         state.user = null
         state.token = null
         state.isAuthenticated = false
+        state.useEmployeeNavigation = false
         // Storage already cleared in the logout thunk
       })
       // Initialize Auth
@@ -268,6 +310,10 @@ const authSlice = createSlice({
         if (action.payload) {
           state.user = action.payload
           state.isAuthenticated = true
+          if (action.payload.role === 'employee') {
+            state.useEmployeeNavigation = false
+            localStorage.removeItem(EMPLOYEE_NAV_STORAGE_KEY)
+          }
           // Keep existing token, just update user
         }
       })
@@ -276,11 +322,13 @@ const authSlice = createSlice({
         state.user = null
         state.token = null
         state.isAuthenticated = false
+        state.useEmployeeNavigation = false
         localStorage.removeItem('token')
         localStorage.removeItem('user')
+        localStorage.removeItem(EMPLOYEE_NAV_STORAGE_KEY)
       })
   },
 })
 
-export const { clearAuth, setCredentials } = authSlice.actions
+export const { clearAuth, setCredentials, setUseEmployeeNavigation } = authSlice.actions
 export default authSlice.reducer

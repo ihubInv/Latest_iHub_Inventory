@@ -2,12 +2,12 @@ import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import type { RootState } from '../../store'
-import { logout } from '../../store/slices/authSlice'
+import { setUseEmployeeNavigation } from '../../store/slices/authSlice'
 import { performCompleteLogout } from '../../utils/logoutUtils'
 import { useLogoutMutation } from '../../store/api/authApi'
 import { Button } from '../ui/Button'
 import { useToast } from '../../hooks/useToast'
-import { Menu, PanelLeftClose, PanelLeftOpen, Bell } from 'lucide-react'
+import { Menu, Bell, UserRound, LayoutDashboard } from 'lucide-react'
 
 interface HeaderProps {
   collapsed: boolean
@@ -16,10 +16,15 @@ interface HeaderProps {
   onMobileToggle: () => void
 }
 
-const Header: React.FC<HeaderProps> = ({ collapsed, onToggle, mobileOpen, onMobileToggle }) => {
+const Header: React.FC<HeaderProps> = ({
+  collapsed: _collapsed,
+  onToggle: _onToggle,
+  mobileOpen: _mobileOpen,
+  onMobileToggle,
+}) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { user } = useSelector((state: RootState) => state.auth)
+  const { user, useEmployeeNavigation } = useSelector((state: RootState) => state.auth)
   const [logoutMutation] = useLogoutMutation()
   const { success, error } = useToast()
 
@@ -43,6 +48,24 @@ const Header: React.FC<HeaderProps> = ({ collapsed, onToggle, mobileOpen, onMobi
         return 'Employee'
       default:
         return role
+    }
+  }
+
+  const isManagement = user?.role === 'admin' || user?.role === 'stock-manager'
+
+  const handleEnterEmployeeView = () => {
+    dispatch(setUseEmployeeNavigation(true))
+    navigate('/employee/dashboard')
+  }
+
+  const handleExitEmployeeView = () => {
+    dispatch(setUseEmployeeNavigation(false))
+    if (user?.role === 'admin') {
+      navigate('/admin/dashboard')
+    } else if (user?.role === 'stock-manager') {
+      navigate('/stock-manager/dashboard')
+    } else {
+      navigate('/dashboard')
     }
   }
 
@@ -103,8 +126,56 @@ const Header: React.FC<HeaderProps> = ({ collapsed, onToggle, mobileOpen, onMobi
 
       {/* Right Section - Actions & Profile */}
       <div className="relative flex items-center space-x-2 sm:space-x-4">
+        {isManagement && !useEmployeeNavigation && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleEnterEmployeeView}
+            className="hidden sm:inline-flex border-gray-300 hover:border-[#0d559e] hover:text-[#0d559e] items-center gap-1.5"
+            title="Switch to employee dashboard and navigation"
+          >
+            <UserRound size={16} aria-hidden />
+            <span>Employee view</span>
+          </Button>
+        )}
+        {isManagement && !useEmployeeNavigation && (
+          <button
+            type="button"
+            aria-label="Switch to employee dashboard"
+            onClick={handleEnterEmployeeView}
+            className="sm:hidden flex items-center justify-center p-2.5 text-gray-600 transition-all duration-200 rounded-xl hover:text-[#0d559e] hover:bg-blue-50 bg-white shadow-sm border border-gray-200"
+            title="Employee view"
+          >
+            <UserRound size={18} aria-hidden />
+          </button>
+        )}
+        {isManagement && useEmployeeNavigation && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExitEmployeeView}
+            className="hidden sm:inline-flex border-gray-300 hover:border-[#0d559e] hover:text-[#0d559e] items-center gap-1.5"
+            title="Return to your management dashboard"
+          >
+            <LayoutDashboard size={16} aria-hidden />
+            <span>{user?.role === 'admin' ? 'Admin' : 'Stock'} dashboard</span>
+          </Button>
+        )}
+        {isManagement && useEmployeeNavigation && (
+          <button
+            type="button"
+            aria-label="Return to management dashboard"
+            onClick={handleExitEmployeeView}
+            className="sm:hidden flex items-center justify-center p-2.5 text-gray-600 transition-all duration-200 rounded-xl hover:text-[#0d559e] hover:bg-blue-50 bg-white shadow-sm border border-gray-200"
+            title="Management dashboard"
+          >
+            <LayoutDashboard size={18} aria-hidden />
+          </button>
+        )}
         {/* Notifications → Asset Request Management (Admin/Stock Manager) */}
-        {(user?.role === 'admin' || user?.role === 'stock-manager') && (
+        {isManagement && !useEmployeeNavigation && (
           <button
             type="button"
             aria-label="Open Asset Request Management"

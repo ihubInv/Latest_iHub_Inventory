@@ -6,9 +6,16 @@ import StockManagerDashboard from '../../pages/StockManagerDashboard'
 import EmployeeDashboard from '../../pages/EmployeeDashboard'
 
 export const RoleBasedDashboard: React.FC = () => {
-  const { user } = useSelector((state: RootState) => state.auth)
+  const { user, useEmployeeNavigation } = useSelector((state: RootState) => state.auth)
 
-  switch (user?.role) {
+  const effectiveRole =
+    user &&
+    (user.role === 'admin' || user.role === 'stock-manager') &&
+    useEmployeeNavigation
+      ? 'employee'
+      : user?.role
+
+  switch (effectiveRole) {
     case 'admin':
       return <AdminDashboard />
     case 'stock-manager':

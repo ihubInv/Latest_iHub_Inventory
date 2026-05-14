@@ -32,13 +32,18 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, useEmployeeNavigation } = useSelector((state: RootState) => state.auth);
 
   if (!user) return null;
 
+  const navigationRole =
+    (user.role === 'admin' || user.role === 'stock-manager') && useEmployeeNavigation
+      ? 'employee'
+      : user.role;
+
   const getMenuItems = () => {
 
-    switch (user.role) {
+    switch (navigationRole) {
       case 'admin':
         return [
           { icon: LayoutDashboard, label: 'Dashboard', path: `/admin/dashboard` },
@@ -78,6 +83,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
   };
 
   const menuItems = getMenuItems();
+
+  const isMenuPathActive = (itemPath: string) =>
+    location.pathname === itemPath ||
+    (itemPath !== '/' && location.pathname.startsWith(itemPath + '/'));
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -159,7 +168,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
               </div>
               <div>
                 <p className="text-sm font-medium text-white">{user.name}</p>
-                <p className="text-xs text-blue-100 capitalize">{user.role?.replace('-', ' ')}</p>
+                <p className="text-xs text-blue-100 capitalize">
+                  {(user.role === 'admin' || user.role === 'stock-manager') && useEmployeeNavigation
+                    ? 'Employee view'
+                    : user.role?.replace('-', ' ')}
+                </p>
               </div>
             </div>
           </div>
@@ -168,7 +181,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
         {/* Navigation */}
         <nav className="sidebar-scroll flex-1 p-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = isMenuPathActive(item.path);
             const colorMap: Record<string, string> = {
               'Dashboard': 'text-amber-200',
               'Add Inventory': 'text-emerald-200',
@@ -248,7 +261,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
             </div>
             <div>
               <p className="text-sm font-medium text-white">{user.name}</p>
-              <p className="text-xs text-blue-100 capitalize">{user.role?.replace('-', ' ')}</p>
+              <p className="text-xs text-blue-100 capitalize">
+                {(user.role === 'admin' || user.role === 'stock-manager') && useEmployeeNavigation
+                  ? 'Employee view'
+                  : user.role?.replace('-', ' ')}
+              </p>
             </div>
           </div>
         </div>
@@ -256,7 +273,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
         {/* Navigation */}
         <nav className="sidebar-scroll flex-1 p-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = isMenuPathActive(item.path);
             const colorMap: Record<string, string> = {
               'Dashboard': 'text-amber-200',
               'Add Inventory': 'text-emerald-200',
@@ -297,7 +314,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, onMo
         <div className="p-4 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-between px-4 py-3 text-left rounded-lg transition-all duration-200 bg-white/10 hover:bg_WHITE/15 text-white border border-white/15 shadow-sm"
+            className="w-full flex items-center justify-between px-4 py-3 text-left rounded-lg transition-all duration-200 bg-white/10 hover:bg-white/15 text-white border border-white/15 shadow-sm"
           >
             <div className="flex items-center space-x-3">
               <LogOut size={20} className="text-blue-100" />

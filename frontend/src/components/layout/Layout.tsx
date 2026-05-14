@@ -1,8 +1,20 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
+import { useLocation, useNavigate } from 'react-router-dom'
+import type { RootState } from '../../store'
 import { Header } from './Header'
 import Sidebar from './Sidebar'
 import { ToastContainer } from '../ui/ToastContainer'
 import { useToast } from '../../hooks/useToast'
+
+/** Paths allowed while admin/stock-manager is in employee navigation mode */
+function isPathAllowedForMgmtEmployeeNav(pathname: string): boolean {
+  if (pathname === '/dashboard') return true
+  if (pathname.startsWith('/employee')) return true
+  if (pathname.startsWith('/create-request')) return true
+  if (pathname.startsWith('/notifications')) return true
+  return false
+}
 
 interface LayoutProps {
   children: React.ReactNode
@@ -12,6 +24,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { toasts, removeToast } = useToast()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { user, useEmployeeNavigation } = useSelector((state: RootState) => state.auth)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!user) return
+    const isMgmt = user.role === 'admin' || user.role === 'stock-manager'
+    if (isMgmt && useEmployeeNavigation && !isPathAllowedForMgmtEmployeeNav(location.pathname)) {
+      navigate('/employee/dashboard', { replace: true })
+    }
+  }, [user, useEmployeeNavigation, location.pathname, navigate])
 
   return (
     <div className="relative flex h-screen bg-gray-50">
