@@ -24,6 +24,8 @@ interface AttractiveDropdownProps {
   multiple?: boolean;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'bordered' | 'filled';
+  /** When set, replaces default max-height / scroll classes on the options list (search stays fixed above). */
+  optionsScrollClassName?: string;
 }
 
 const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
@@ -39,7 +41,8 @@ const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
   icon,
   searchable = false,
   size = 'md',
-  variant = 'default'
+  variant = 'default',
+  optionsScrollClassName
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,16 +68,10 @@ const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
   }, [isOpen, searchable]);
 
   const selectedOption = options.find(option => option.value === value);
-  
-  // Debug: Log the value and selected option
-  React.useEffect(() => {
-    console.log('🔍 AttractiveDropdown Debug:', {
-      label: label,
-      value: value,
-      selectedOption: selectedOption,
-      options: options
-    });
-  }, [value, selectedOption, label, options]);
+
+  const optionsScrollClasses =
+    optionsScrollClassName?.trim() ||
+    'max-h-48 sm:max-h-64 md:max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100';
 
   const filteredOptions = searchable 
     ? options.filter(option => 
@@ -181,7 +178,7 @@ const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
               </div>
             )}
             
-            <div className="max-h-48 sm:max-h-64 md:max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className={optionsScrollClasses}>
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((option) => (
                   <button

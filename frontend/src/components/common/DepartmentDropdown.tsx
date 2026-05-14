@@ -44,6 +44,8 @@ export interface DepartmentDropdownProps {
   size?: 'sm' | 'md' | 'lg'
   searchable?: boolean
   variant?: 'default' | 'bordered' | 'filled'
+  /** Tighter panel: ~3 rows visible, list scrolls vertically under search (e.g. register screen). */
+  compactOptionsList?: boolean
 }
 
 function buildOptions(includeEmpty: boolean, emptyLabel: string, extraNames: string[]) {
@@ -93,6 +95,9 @@ function buildOptions(includeEmpty: boolean, emptyLabel: string, extraNames: str
   return out
 }
 
+const COMPACT_DEPT_SCROLL =
+  'max-h-[12.5rem] overflow-y-scroll overscroll-contain border-t border-slate-100 bg-white scrollbar-thin scrollbar-thumb-slate-400/80 scrollbar-track-slate-100 hover:scrollbar-thumb-slate-500 pr-1'
+
 const DepartmentDropdown: React.FC<DepartmentDropdownProps> = ({
   value,
   onChange,
@@ -101,6 +106,7 @@ const DepartmentDropdown: React.FC<DepartmentDropdownProps> = ({
   extraNames = [],
   placeholder = 'Select department',
   searchable = true,
+  compactOptionsList = false,
   ...props
 }) => {
   const options = useMemo(
@@ -116,6 +122,7 @@ const DepartmentDropdown: React.FC<DepartmentDropdownProps> = ({
       placeholder={placeholder}
       icon={<Building2 className="w-4 h-4 text-gray-500" />}
       searchable={searchable}
+      optionsScrollClassName={compactOptionsList ? COMPACT_DEPT_SCROLL : undefined}
       {...props}
     />
   )

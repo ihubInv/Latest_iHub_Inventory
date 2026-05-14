@@ -240,6 +240,7 @@ const RegisterForm: React.FC = () => {
                   error={formErrors.department}
                   size="sm"
                   variant="bordered"
+                  compactOptionsList
                 />
               </div>
             </div>

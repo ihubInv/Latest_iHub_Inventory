@@ -257,7 +257,7 @@ const LoginForm: React.FC = () => {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-500">
-            Inventory Management System © 2025
+            Inventory Management System © {new Date().getFullYear()}
           </p>
         </div>
       </div>
