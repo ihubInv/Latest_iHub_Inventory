@@ -322,34 +322,33 @@ const AddInventory: React.FC = () => {
   // Only update if items already have asset names (to avoid overwriting empty rows)
   React.useEffect(() => {
     const updateMultipleItemsIds = async () => {
-      if (multipleItems.length > 0 && formData.locationofitem) {
-        let hasChanges = false;
-        const updatedItems = await Promise.all(
-          multipleItems.map(async (item, idx) => {
-            if (item.assetname && item.assetcategory && formData.locationofitem) {
-              const newUniqueId = await generateMultipleItemUniqueId(
-                item.assetname,
-                formData.locationofitem,
-                idx
-              );
-              if (item.uniqueid !== newUniqueId) {
-                hasChanges = true;
-              }
-              return { ...item, uniqueid: newUniqueId };
+      if (multipleItems.length === 0) return;
+      let hasChanges = false;
+      const updatedItems = await Promise.all(
+        multipleItems.map(async (item, idx) => {
+          const loc = item.locationofitem?.trim();
+          if (item.assetname && item.assetcategory && loc) {
+            const newUniqueId = await generateMultipleItemUniqueId(
+              item.assetname,
+              loc,
+              idx
+            );
+            if (item.uniqueid !== newUniqueId) {
+              hasChanges = true;
             }
-            return item;
-          })
-        );
-        // Only update state if there are actual changes to avoid infinite loops
-        if (hasChanges) {
-          setMultipleItems(updatedItems);
-        }
+            return { ...item, uniqueid: newUniqueId };
+          }
+          return item;
+        })
+      );
+      if (hasChanges) {
+        setMultipleItems(updatedItems);
       }
     };
-    
+
     updateMultipleItemsIds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextSerialNumber, formData.financialyear, formData.locationofitem]);
+  }, [nextSerialNumber, formData.financialyear]);
 
   // Handle bulk upload
   const handleBulkUpload = async (data: any[]) => {
@@ -1670,18 +1669,17 @@ const handleFile = (file?: File) => {
                                 assetCategory={it.assetcategory}
                                 value={it.assetnamefromcategory}
                                 onChange={async (value) => {
-                                  setMultipleItems(prev => prev.map((row, i) => i === idx ? { 
-                                    ...row, 
-                                    assetnamefromcategory: value,
-                                    assetname: value // Set assetname from dropdown selection
-                                  } : row));
-                                  
-                                  // Update unique ID when asset name changes
-                                  if (value && it.assetcategory && formData.locationofitem) {
-                                    // Generate unique ID with index to ensure sequential numbering
-                                    const newUniqueId = await generateMultipleItemUniqueId(value, formData.locationofitem, idx);
-                                    setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, uniqueid: newUniqueId } : row));
+                                  const loc = it.locationofitem?.trim();
+                                  let uniqueid = '';
+                                  if (value && it.assetcategory && loc) {
+                                    uniqueid = await generateMultipleItemUniqueId(value, loc, idx);
                                   }
+                                  setMultipleItems(prev => prev.map((row, i) => i === idx ? {
+                                    ...row,
+                                    assetnamefromcategory: value,
+                                    assetname: value,
+                                    uniqueid
+                                  } : row));
                                 }}
                                 required
                                 placeholder={`Select ${it.categorytype === 'major' ? 'Major' : 'Minor'} Asset Name`}
@@ -1937,7 +1935,7 @@ const handleFile = (file?: File) => {
                             <LocationDropdown
                               label="Location *"
                               inventoryItems={inventoryItems}
-                              value={it.locationofitem || formData.locationofitem || ''}
+                              value={it.locationofitem ?? ''}
                               onChange={(value) => {
                                 setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, locationofitem: value } : row));
                                 // Update unique ID when location changes
@@ -2216,7 +2214,7 @@ const handleFile = (file?: File) => {
                               dateofentry: mi.dateofentry,
                               purchaseordernumber: mi.purchaseordernumber || '',
                               unitofmeasurement: mi.unitofmeasurement || 'Pieces',
-                              locationofitem: mi.locationofitem || formData.locationofitem,
+                              locationofitem: mi.locationofitem?.trim() || '',
                               warrantyinformation: mi.warrantyinformation || '',
                               annualmanagementcharge: mi.annualmanagementcharge || 0,
                               attachments: [],
@@ -2264,7 +2262,7 @@ const handleFile = (file?: File) => {
                             dateofentry: new Date(),
                             purchaseordernumber: '',
                             unitofmeasurement: 'Pieces',
-                            locationofitem: formData.locationofitem || '',
+                            locationofitem: '',
                             warrantyinformation: '',
                             annualmanagementcharge: 0
                           }]);
@@ -2366,7 +2364,7 @@ const handleFile = (file?: File) => {
                               dateofentry: new Date(),
                               purchaseordernumber: '',
                               unitofmeasurement: 'Pieces',
-                              locationofitem: formData.locationofitem || '',
+                              locationofitem: '',
                               warrantyinformation: '',
                               annualmanagementcharge: 0
                             }));
@@ -2397,7 +2395,7 @@ const handleFile = (file?: File) => {
                           (async () => {
                             const asset = template.assetname;
                             const category = template.assetcategory;
-                            const loc = formData.locationofitem;
+                            const loc = template.locationofitem?.trim() || '';
                             const updated = [...multipleItems];
                             // Ensure template has a unique ID first (use current index)
                             const templateIndex = updated.length - 1;
@@ -2437,7 +2435,7 @@ const handleFile = (file?: File) => {
                                   dateofentry: template.dateofentry || new Date(),
                                   purchaseordernumber: template.purchaseordernumber || '',
                                   unitofmeasurement: template.unitofmeasurement || 'Pieces',
-                                  locationofitem: template.locationofitem || formData.locationofitem || '',
+                                  locationofitem: template.locationofitem || '',
                                   warrantyinformation: template.warrantyinformation || '',
                                   annualmanagementcharge: template.annualmanagementcharge || 0
                                 };
