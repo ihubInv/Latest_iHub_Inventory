@@ -145,15 +145,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   // Get user-specific data if employee
   let userSpecificData = null;
   if (user.role === 'employee') {
-    const userRequests = await Request.find({ employeeid: user.id })
+    const userRequests = await Request.find({ employeeid: user._id })
       .sort({ submittedat: -1 })
       .limit(5);
 
     const userTransactions = await InventoryTransaction.find({
-      $or: [
-        { issuedto: user.id },
-        { issuedby: user.id }
-      ]
+      $or: [{ issuedto: user._id }, { issuedby: user._id }],
     })
       .populate('inventoryitemid', 'uniqueid assetname')
       .sort({ transactiondate: -1 })
@@ -409,10 +406,10 @@ const getInventoryOverview = asyncHandler(async (req, res) => {
 const getRequestOverview = asyncHandler(async (req, res) => {
   const user = req.user;
 
-  // Build query based on user role
+  // Build query based on user role (use _id for aggregates — matches Request.employeeid ObjectId)
   let query = {};
   if (user.role === 'employee') {
-    query.employeeid = user.id;
+    query.employeeid = user._id;
   }
 
   // Get request statistics
@@ -629,18 +626,17 @@ const getTransactionOverview = asyncHandler(async (req, res) => {
 const getUserActivity = asyncHandler(async (req, res) => {
   const user = req.user;
 
+  const userId = user._id;
+
   // Get user's recent requests
-  const recentRequests = await Request.find({ employeeid: user.id })
+  const recentRequests = await Request.find({ employeeid: userId })
     .populate('reviewedby', 'name')
     .sort({ submittedat: -1 })
     .limit(5);
 
   // Get user's recent transactions
   const recentTransactions = await InventoryTransaction.find({
-    $or: [
-      { issuedto: user.id },
-      { issuedby: user.id }
-    ]
+    $or: [{ issuedto: userId }, { issuedby: userId }],
   })
     .populate('inventoryitemid', 'uniqueid assetname')
     .populate('issuedto', 'name')
@@ -650,7 +646,7 @@ const getUserActivity = asyncHandler(async (req, res) => {
 
   // Get user's request statistics
   const requestStats = await Request.aggregate([
-    { $match: { employeeid: user.id } },
+    { $match: { employeeid: userId } },
     {
       $group: {
         _id: '$status',
@@ -663,11 +659,8 @@ const getUserActivity = asyncHandler(async (req, res) => {
   const transactionStats = await InventoryTransaction.aggregate([
     {
       $match: {
-        $or: [
-          { issuedto: user.id },
-          { issuedby: user.id }
-        ]
-      }
+        $or: [{ issuedto: userId }, { issuedby: userId }],
+      },
     },
     {
       $group: {

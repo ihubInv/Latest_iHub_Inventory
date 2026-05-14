@@ -74,10 +74,10 @@ const EmployeeDashboard: React.FC = () => {
   }
   
   // Employee's own requests and recent transactions
-  const { data: myRequests, isLoading: requestsLoading, error: requestsError } = useGetMyRequestsQuery({ 
-    page: 1, 
-    limit: 5, // Show only 5 most recent requests
-    sort: '-submittedat' // Sort by newest first
+  const { data: myRequests, isLoading: requestsLoading, error: requestsError } = useGetMyRequestsQuery({
+    page: 1,
+    limit: 100,
+    sort: '-submittedat',
   })
   
   // Recent inventory transactions for user activity
@@ -100,42 +100,63 @@ const EmployeeDashboard: React.FC = () => {
   const hasError = requestError || userActivityError || 
                   requestStatsError || requestsError || transactionsError
 
-  // Use employee-specific stats from APIs (they auto-filter by employee in backend)
+  // Use employee-specific stats (overview + stats are role-filtered on the backend)
   const employeeRequestStats = React.useMemo(() => {
-    // Priority: requestStats -> requestOverview -> fallback to myRequests calculation
+    const overview = requestOverview?.data
+
+    if (
+      overview &&
+      typeof overview.pendingRequests === 'number' &&
+      typeof overview.approvedRequests === 'number' &&
+      typeof overview.rejectedRequests === 'number'
+    ) {
+      const total =
+        typeof overview.totalRequests === 'number'
+          ? overview.totalRequests
+          : overview.pendingRequests + overview.approvedRequests + overview.rejectedRequests
+      return {
+        pendingRequests: overview.pendingRequests,
+        approvedRequests: overview.approvedRequests,
+        rejectedRequests: overview.rejectedRequests,
+        totalRequests: total,
+      }
+    }
+
     if (requestStats?.data) {
       return {
-        pendingRequests: requestStats.data.pending || 0,
-        approvedRequests: requestStats.data.approved || 0,
-        rejectedRequests: requestStats.data.rejected || 0,
-        totalRequests: requestStats.data.total || 0
+        pendingRequests: requestStats.data.pending ?? 0,
+        approvedRequests: requestStats.data.approved ?? 0,
+        rejectedRequests: requestStats.data.rejected ?? 0,
+        totalRequests: requestStats.data.total ?? 0,
       }
-    } else if (requestOverview?.data?.byStatus) {
+    }
+
+    if (overview?.byStatus?.length) {
       const stats = { pending: 0, approved: 0, rejected: 0 }
-      requestOverview.data.byStatus.forEach(status => {
-        if (status._id === 'pending') stats.pending = status.count
-        if (status._id === 'approved') stats.approved = status.count
-        if (status._id === 'rejected') stats.rejected = status.count
+      overview.byStatus.forEach((status) => {
+        const key = status._id as string
+        if (key === 'pending') stats.pending = status.count
+        if (key === 'approved') stats.approved = status.count
+        if (key === 'rejected') stats.rejected = status.count
       })
       return {
         pendingRequests: stats.pending,
         approvedRequests: stats.approved,
         rejectedRequests: stats.rejected,
-        totalRequests: stats.pending + stats.approved + stats.rejected
+        totalRequests: stats.pending + stats.approved + stats.rejected,
       }
-    } else {
-      // Fallback: calculate from myRequests
-      const myRequestsData = myRequests?.data || []
-      const pending = myRequestsData.filter(req => req.status === 'pending').length
-      const approved = myRequestsData.filter(req => req.status === 'approved').length
-      const rejected = myRequestsData.filter(req => req.status === 'rejected').length
-      
-      return {
-        pendingRequests: pending,
-        approvedRequests: approved,
-        rejectedRequests: rejected,
-        totalRequests: myRequestsData.length
-      }
+    }
+
+    const myRequestsData = myRequests?.data || []
+    const pending = myRequestsData.filter((req) => req.status === 'pending').length
+    const approved = myRequestsData.filter((req) => req.status === 'approved').length
+    const rejected = myRequestsData.filter((req) => req.status === 'rejected').length
+
+    return {
+      pendingRequests: pending,
+      approvedRequests: approved,
+      rejectedRequests: rejected,
+      totalRequests: myRequests?.total ?? myRequestsData.length,
     }
   }, [requestStats, requestOverview, myRequests])
 

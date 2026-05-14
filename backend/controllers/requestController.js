@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Request = require('../models/Request');
 const InventoryItem = require('../models/InventoryItem');
 const InventoryTransaction = require('../models/InventoryTransaction');
@@ -413,9 +414,12 @@ const getOverdueRequests = asyncHandler(async (req, res) => {
 const getRequestStats = asyncHandler(async (req, res) => {
   let matchStage = {};
 
-  // If user is employee, only show their stats
+  // If user is employee, only show their stats (use ObjectId — aggregate $match does not cast like find())
   if (req.user.role === 'employee') {
-    matchStage.employeeid = req.user.id;
+    const eid = req.user._id ?? req.user.id;
+    matchStage.employeeid = mongoose.Types.ObjectId.isValid(eid)
+      ? new mongoose.Types.ObjectId(String(eid))
+      : eid;
   }
 
   const stats = await Request.aggregate([
