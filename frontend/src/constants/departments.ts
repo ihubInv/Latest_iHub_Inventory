@@ -7,7 +7,7 @@ export const EMPLOYEE_DEPARTMENTS = [
   'Operation',
   'Business Development',
   'IT Technology',
-  'Leading',
+  'Lead',
 ] as const
 
 export type EmployeeDepartment = (typeof EMPLOYEE_DEPARTMENTS)[number]
