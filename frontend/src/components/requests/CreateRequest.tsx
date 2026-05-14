@@ -172,7 +172,7 @@ const CreateRequest: React.FC = () => {
           {/* Justification */}
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
-              Justification *
+              Justification & Name of the Item You Want to Request *
             </label>
             <textarea
               name="justification"
@@ -181,7 +181,7 @@ const CreateRequest: React.FC = () => {
               required
               rows={4}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Please provide a detailed justification for this request. Include any specific requirements, urgency, or business impact..."
+              placeholder="Example: Requesting a Dell Laptop for development work and project deployment. The current system is outdated and affecting productivity. Urgent requirement for daily office tasks and testing."
             />
             <p className="mt-1 text-xs text-gray-500">
               Minimum 20 characters. Be specific about why you need this item.

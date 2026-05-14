@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { useGetRequestsQuery, useRejectRequestMutation } from '../../store/api'
-import { useGetInventoryItemQuery, useGetInventoryItemsQuery } from '../../store/api/inventoryApi'
 import { useGetMyReturnRequestsQuery } from '../../store/api/returnRequestsApi'
 import { useAppSelector } from '../../store/hooks'
 import { Clock, CheckCircle, XCircle, FileText, Search, Eye, PackageX } from 'lucide-react'
@@ -23,23 +22,6 @@ const RequestActionModal: React.FC<RequestActionModalProps> = ({
   isOpen, onClose, request, action, onSubmit, isLoading 
 }) => {
   const { user } = useAppSelector((state) => state.auth)
-  const { data: inventoryItemResponse } = useGetInventoryItemQuery(request?.inventoryitemid as string, {
-    skip: !request?.inventoryitemid
-  })
-  const { data: allInventoryResponse } = useGetInventoryItemsQuery({}, {
-    skip: !!request?.inventoryitemid
-  })
-  const inferredCategory = (() => {
-    if ((inventoryItemResponse?.data as any)?.assetcategoryid?.name) {
-      return (inventoryItemResponse?.data as any)?.assetcategoryid?.name
-    }
-    const items = (allInventoryResponse?.data as any[]) || []
-    const match = items.find((it: any) => {
-      const n = it?.assetname || it?.asset?.name
-      return n && request?.itemtype && n.toString().trim().toLowerCase() === request.itemtype.toString().trim().toLowerCase()
-    })
-    return match?.assetcategoryid?.name || match?.assetcategory || undefined
-  })()
   const [formData, setFormData] = useState({
     remarks: '',
     rejectionReason: '',
@@ -86,10 +68,6 @@ const RequestActionModal: React.FC<RequestActionModalProps> = ({
             <div>
               <div className="text-xs text-gray-500">Requested By</div>
               <div className="text-sm font-medium text-gray-900">{request?.employeename || '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Asset Category</div>
-              <div className="text-sm font-medium text-gray-900">{inferredCategory || '—'}</div>
             </div>
             <div>
               <div className="text-xs text-gray-500">Purpose</div>

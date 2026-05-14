@@ -3,7 +3,6 @@ import {
   useGetInventoryItemsQuery,
   useApproveRequestMutation,
   useRejectRequestMutation,
-  useGetCategoriesQuery
 } from '../../store/api';
 import { useAppSelector } from '../../store/hooks';
 // Removed Supabase - using backend API for all operations
@@ -35,10 +34,11 @@ const RequestApprovalModal: React.FC<RequestApprovalModalProps> = ({
   request,
   action
 }) => {
-  const { data: inventoryResponse, isLoading: isLoadingInventory } = useGetInventoryItemsQuery({});
+  const { data: inventoryResponse, isLoading: isLoadingInventory } = useGetInventoryItemsQuery(
+    { page: 1, limit: 2000, status: 'available' },
+    { skip: !isOpen || action !== 'approve' }
+  );
   const inventoryItems = inventoryResponse?.data || [];
-  const { data: categoriesResponse } = useGetCategoriesQuery({});
-  const categories = categoriesResponse?.data || [];
   const [approveRequest] = useApproveRequestMutation();
   const [rejectRequest] = useRejectRequestMutation();
   const { user } = useAppSelector((state) => state.auth);
@@ -49,20 +49,34 @@ const RequestApprovalModal: React.FC<RequestApprovalModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
-  // Filter available items that match the request
-  const availableItems = inventoryItems?.filter((item: any) => {
-    const matchesStatus = item.status === 'available';
-    const matchesCategory = !selectedCategory || item.assetcategory === selectedCategory;
-    // Show all available items, not just those matching the request category
-    const matchesSearch = !searchTerm || 
-                         item.assetname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.assetcategory.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.uniqueid.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesCategory && matchesSearch;
-  }) || [];
+  const requestedItemType = (request?.itemtype ?? '').trim();
 
-  // If no items found with current filters, show all available items
-  const displayItems = availableItems.length > 0 ? availableItems : (inventoryItems?.filter((item: any) => item.status === 'available') || []);
+  /** Inventory rows whose category matches the request's Item Type (when set). */
+  const inventoryForRequestType =
+    requestedItemType.length === 0
+      ? inventoryItems
+      : (inventoryItems ?? []).filter((item: any) => {
+          const cat = (item.assetcategory ?? '').trim().toLowerCase();
+          return cat === requestedItemType.toLowerCase();
+        });
+
+  // Filter available items that match the request type, status, optional category filter, and search
+  const availableItems =
+    inventoryForRequestType?.filter((item: any) => {
+      const matchesStatus = item.status === 'available';
+      const matchesCategory =
+        !selectedCategory ||
+        (item.assetcategory ?? '').trim().toLowerCase() === selectedCategory.trim().toLowerCase();
+      const st = searchTerm.trim().toLowerCase();
+      const matchesSearch =
+        !st ||
+        (item.assetname ?? '').toLowerCase().includes(st) ||
+        (item.assetcategory ?? '').toLowerCase().includes(st) ||
+        (item.uniqueid ?? '').toLowerCase().includes(st);
+      return matchesStatus && matchesCategory && matchesSearch;
+    }) ?? [];
+
+  const displayItems = availableItems;
 
   // Group items by category
   const itemsByCategory = displayItems.reduce((acc: Record<string, any[]>, item: any) => {
@@ -77,24 +91,12 @@ const RequestApprovalModal: React.FC<RequestApprovalModalProps> = ({
   // Get categories that have available items
   const availableCategories = Object.keys(itemsByCategory).sort();
 
-  // Debug logging
-  console.log('🔍 RequestApprovalModal Debug:', {
-    inventoryItems: inventoryItems?.length || 0,
-    availableItems: availableItems?.length || 0,
-    displayItems: displayItems?.length || 0,
-    requestItemType: request?.itemtype,
-    selectedCategory,
-    searchTerm,
-    availableCategories: availableCategories.length,
-    itemsByCategory: Object.keys(itemsByCategory)
-  });
-
   useEffect(() => {
     if (isOpen && request) {
       setReason('');
       setSelectedAsset(null);
       setSearchTerm('');
-      setSelectedCategory(''); // Show all categories initially
+      setSelectedCategory('');
       setExpandedCategories(new Set());
     }
   }, [isOpen, request]);
@@ -280,20 +282,10 @@ const RequestApprovalModal: React.FC<RequestApprovalModalProps> = ({
                 <Package className="w-5 h-5 mr-2 text-blue-600" />
                 Select Asset to Issue
               </h4>
-              
-              {/* Search */}
-              <div className="mb-4">
-                <div className="relative">
-                  <Search className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search available assets..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
+              <p className="mb-3 text-xs text-gray-500">
+                Only assets with status <span className="font-medium text-gray-700">Available</span> can be
+                issued. Category totals elsewhere may include issued or reserved units.
+              </p>
 
               {/* Search and Filter Controls */}
               <div className="space-y-3">
@@ -301,7 +293,7 @@ const RequestApprovalModal: React.FC<RequestApprovalModalProps> = ({
                   <Search className="w-4 h-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search by asset name, category, or ID..."
+                    placeholder="Search available assets by name, category, or ID..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -310,16 +302,26 @@ const RequestApprovalModal: React.FC<RequestApprovalModalProps> = ({
                 
                 <div className="flex items-center space-x-2">
                   <Filter className="w-4 h-4 text-gray-400" />
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All Categories</option>
-                    {availableCategories.map(category => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
+                  {requestedItemType ? (
+                    <p className="flex-1 px-3 py-2 text-sm rounded-lg border border-blue-100 bg-blue-50 text-blue-900">
+                      Showing assets in:{' '}
+                      <span className="font-semibold">{requestedItemType}</span>
+                      <span className="text-blue-700"> (matches request Item Type)</span>
+                    </p>
+                  ) : (
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">All Categories</option>
+                      {availableCategories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   
                   <div className="flex items-center space-x-1">
                     <button
