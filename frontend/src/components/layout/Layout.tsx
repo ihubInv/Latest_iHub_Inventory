@@ -54,7 +54,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         onMobileToggle={() => setSidebarOpen(!sidebarOpen)}
       />
       
-      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+      <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 ${
         sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
       }`}>
         <Header 

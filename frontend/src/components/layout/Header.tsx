@@ -77,7 +77,7 @@ const Header: React.FC<HeaderProps> = ({
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#0d559e]/30 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#1a6bb8]/30 to-transparent" />
       </div>
-      <div className="relative w-full flex items-center justify-between border border-gray-200/60 rounded-2xl shadow-sm bg-white/60 backdrop-blur-md px-3 sm:px-4 py-3">
+      <div className="relative w-full flex items-center justify-between gap-2 min-w-0 border border-gray-200/60 rounded-2xl shadow-sm bg-white/60 backdrop-blur-md px-2 sm:px-4 py-2.5 sm:py-3">
       {/* Left Section - Mobile Menu & Logo */}
       <div className="flex items-center space-x-4">
         {/* Mobile Menu Button */}

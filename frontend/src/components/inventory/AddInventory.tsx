@@ -25,6 +25,7 @@ import UnitDropdown from '../common/UnitDropdown';
 import DepreciationMethodDropdown from '../common/DepreciationMethodDropdown';
 import FinancialYearDropdown from '../common/FinancialYearDropdown';
 import BulkUpload from './BulkUpload';
+import UniqueIdPreviewField from '../common/UniqueIdPreviewField';
 import { bulkUploadInventory } from '../../services/bulkUploadService';
 
 /** Split a total amount evenly across N rows (cent-accurate). */
@@ -82,13 +83,19 @@ const AddInventory: React.FC = () => {
     refetchOnFocus: true,
   });
   const nextSerialNumber = serialPreviewResponse?.data?.nextSerialFormatted || '001';
-  
+
   // Track if we need to refetch (only after successful submission)
   const [shouldRefetch, setShouldRefetch] = React.useState(false);
   const { user } = useAppSelector((state) => state.auth);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'single' | 'multi' | 'bulk'>('single');
+
+  React.useEffect(() => {
+    if (activeTab === 'single' || activeTab === 'multi') {
+      refetchSerialPreview();
+    }
+  }, [activeTab, refetchSerialPreview]);
   const [showAddRowsModal, setShowAddRowsModal] = useState(false);
   const [rowsToAdd, setRowsToAdd] = useState<string>('1');
   const [distributeRateAcrossRows, setDistributeRateAcrossRows] = useState<boolean>(true);
@@ -891,99 +898,14 @@ const handleFile = (file?: File) => {
           {/* Basic Information */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <div>
-              <label className="flex items-center mb-2 text-sm font-medium text-gray-700">
-                <span>Unique ID *</span>
-                <span className="px-2 py-1 ml-2 text-xs text-blue-800 bg-blue-100 rounded-full">Auto-Generated</span>
-              </label>
-              <div className="relative">
-                <div className="relative w-full h-11 border border-gray-300 rounded-xl cursor-not-allowed bg-gray-50 flex items-center overflow-hidden">
-                  {/* Real-time ID Generation Display Inside Field */}
-                  <div 
-                    className="flex items-center gap-0.5 flex-1 min-w-0 px-3 overflow-x-auto"
-                    style={{ 
-                      scrollbarWidth: 'none',
-                      msOverflowStyle: 'none'
-                    } as React.CSSProperties}
-                  >
-                    <style>{`
-                      .unique-id-scroll::-webkit-scrollbar {
-                        display: none;
-                      }
-                    `}</style>
-                    <div className="flex items-center gap-0.5 flex-shrink-0 unique-id-scroll">
-                      <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">🔄</span>
-                      <span className="px-1 py-0.5 text-[10px] font-mono font-semibold text-blue-600 bg-white border border-gray-200 rounded whitespace-nowrap">ihub</span>
-                      <span className="text-[10px] text-gray-400 whitespace-nowrap">/</span>
-                      <span className={`text-[10px] font-mono px-1 py-0.5 rounded border whitespace-nowrap ${
-                        formData.financialyear 
-                          ? 'bg-green-100 border-green-300 text-green-700' 
-                          : 'bg-red-100 border-red-300 text-red-500'
-                      }`}>
-                        {formData.financialyear || '--'}
-                      </span>
-                      <span className="text-[10px] text-gray-400 whitespace-nowrap">/</span>
-                      <span className={`text-[10px] font-mono px-1 py-0.5 rounded border whitespace-nowrap ${
-                        (formData.assetnamefromcategory || formData.assetname)
-                          ? 'bg-green-100 border-green-300 text-green-700' 
-                          : 'bg-red-100 border-red-300 text-red-500'
-                      }`}>
-                        {generateAssetCode(formData.assetnamefromcategory || formData.assetname) || '--'}
-                      </span>
-                      <span className="text-[10px] text-gray-400 whitespace-nowrap">/</span>
-                      <span className={`text-[10px] font-mono px-1 py-0.5 rounded border whitespace-nowrap ${
-                        formData.locationofitem 
-                          ? 'bg-green-100 border-green-300 text-green-700' 
-                          : 'bg-red-100 border-red-300 text-red-500'
-                      }`}>
-                        {formData.locationofitem || '--'}
-                      </span>
-                      <span className="text-[10px] text-gray-400 whitespace-nowrap">/</span>
-                      <span className={`text-[10px] font-mono px-1 py-0.5 rounded border whitespace-nowrap ${
-                        formData.financialyear && formData.assetname && formData.locationofitem
-                          ? 'bg-green-100 border-green-300 text-green-700' 
-                          : 'bg-red-100 border-red-300 text-red-500'
-                      }`}>
-                        {formData.uniqueid.split('/').pop() || '001'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none bg-gray-50 z-10">
-                    <Package className="w-4 h-4 text-gray-400" />
-                  </div>
-                </div>
-                
-                {/* Progress indicator below field */}
-                {formData.uniqueid && (
-                  <div className="flex items-center mt-2 space-x-2">
-                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full">
-                      <div 
-                        className="h-1.5 transition-all duration-300 rounded-full bg-gradient-to-r from-[#0d559e] to-[#1a6bb8]"
-                        style={{ 
-                          width: `${[
-                            formData.financialyear,
-                            formData.assetnamefromcategory || formData.assetname,
-                            formData.locationofitem
-                          ].filter(Boolean).length * 25 + 25}%` 
-                        }}
-                      ></div>
-                    </div>
-                    <span className="text-xs font-medium text-gray-500">
-                      {[formData.financialyear, formData.assetnamefromcategory || formData.assetname, formData.locationofitem].filter(Boolean).length + 1}/4 Complete
-                    </span>
-                  </div>
-                )}
-                
-                {/* Missing fields reminder */}
-                {(!formData.financialyear || !(formData.assetnamefromcategory || formData.assetname) || !formData.locationofitem) && (
-                  <div className="mt-1 text-xs text-amber-600">
-                    ⚠️ Missing: {[
-                      !formData.financialyear && 'Financial Year',
-                      !(formData.assetnamefromcategory || formData.assetname) && 'Asset Name',
-                      !formData.locationofitem && 'Location'
-                    ].filter(Boolean).join(', ')}
-                  </div>
-                )}
-              </div>
+              <UniqueIdPreviewField
+                financialYear={formData.financialyear}
+                assetName={formData.assetnamefromcategory || formData.assetname}
+                location={formData.locationofitem}
+                uniqueId={formData.uniqueid}
+                serialPreview={nextSerialNumber}
+                rowIndex={0}
+              />
             </div>
 
             <div>
@@ -1756,28 +1678,14 @@ const handleFile = (file?: File) => {
                       {/* Basic Information */}
                       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                         <div>
-                          <label className="flex items-center mb-2 text-sm font-medium text-gray-700">
-                            <span>Unique ID *</span>
-                            <span className="px-2 py-1 ml-2 text-xs text-blue-800 bg-blue-100 rounded-full">Auto-Generated</span>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={it.uniqueid}
-                              readOnly
-                              required
-                              className="w-full h-11 px-4 pr-10 border border-gray-300 rounded-lg cursor-not-allowed bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Will be generated automatically..."
-                            />
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                              <Package className="w-4 h-4 text-gray-400" />
-                            </div>
-                          </div>
-                          {it.uniqueid && (
-                            <div className="p-2 mt-2 border border-blue-200 rounded-md bg-gradient-to-r from-[#0d559e]/10 to-[#1a6bb8]/10">
-                              <div className="text-xs font-mono text-blue-600">{it.uniqueid}</div>
-                            </div>
-                          )}
+                          <UniqueIdPreviewField
+                            financialYear={formData.financialyear}
+                            assetName={it.assetnamefromcategory || it.assetname}
+                            location={it.locationofitem}
+                            uniqueId={it.uniqueid}
+                            serialPreview={nextSerialNumber}
+                            rowIndex={idx}
+                          />
                         </div>
 
                         <div>

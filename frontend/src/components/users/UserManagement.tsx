@@ -483,26 +483,65 @@ const handleUserUpdate = (user:any) => {
 
 
 
+  const renderUserActions = (user: User) => (
+    <div className="flex flex-wrap items-center gap-2">
+      {(currentUser?.role === 'admin' || (currentUser?.role === 'stock-manager' && user.role !== 'admin')) && (
+        <button
+          onClick={() => handleToggleStatus(user.id, user.isactive)}
+          className={`p-2 rounded-lg transition-colors ${
+            user.isactive
+              ? 'text-orange-600 hover:bg-orange-50'
+              : 'text-green-600 hover:bg-green-50'
+          }`}
+          title={user.isactive ? 'Deactivate' : 'Activate'}
+        >
+          {user.isactive ? <UserX size={16} /> : <UserCheck size={16} />}
+        </button>
+      )}
+      {(currentUser?.role === 'admin' || (currentUser?.role === 'stock-manager' && user.role !== 'admin')) && (
+        <>
+          <button
+            onClick={() => handleUserUpdate(user)}
+            className="p-2 text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
+            title="Edit User"
+          >
+            <Edit size={16} />
+          </button>
+          {currentUser?.role === 'admin' && user.id !== currentUser.id && (
+            <button
+              onClick={() => handleDeleteUser(user.id)}
+              className="p-2 text-red-600 transition-colors rounded-lg hover:bg-red-50"
+              title="Delete User"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-          <p className="mt-1 text-gray-600">Manage system users and their permissions</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">User Management</h1>
+          <p className="mt-1 text-sm text-gray-600 sm:text-base">Manage system users and their permissions</p>
         </div>
         {currentUser?.role === 'admin' && (
-          <button 
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center px-4 py-2 space-x-2 text-white transition-all duration-200 rounded-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
-            <Plus size={16} className="text-green-500" />
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center justify-center w-full px-4 py-2.5 space-x-2 text-white transition-all duration-200 rounded-lg shrink-0 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 sm:w-auto"
+          >
+            <Plus size={16} />
             <span>Add User</span>
           </button>
         )}
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6 sm:gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
         <div className="p-4 bg-white border border-gray-100 shadow-sm rounded-2xl sm:p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -577,8 +616,8 @@ const handleUserUpdate = (user:any) => {
       </div>
 
       {/* Filters */}
-      <div className="p-4 bg-white border border-gray-100 shadow-sm rounded-2xl sm:p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="p-3 bg-white border border-gray-100 shadow-sm rounded-2xl sm:p-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 sm:gap-4">
           <div className="relative">
             <Search className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={16} />
             <input
@@ -623,11 +662,68 @@ const handleUserUpdate = (user:any) => {
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="overflow-hidden bg-white border border-gray-100 shadow-sm rounded-2xl">
+      {/* Users — mobile cards */}
+      <div className="overflow-hidden bg-white border border-gray-100 shadow-sm rounded-2xl lg:hidden">
+        {filteredUsers.length > 0 ? (
+          <div className="divide-y divide-gray-100">
+            {filteredUsers.map((user) => (
+              <div key={user.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center min-w-0 gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 shrink-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600">
+                      <span className="text-sm font-medium text-white">
+                        {user.name.split(' ').map((n) => n[0]).join('')}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                      <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                    </div>
+                  </div>
+                  <span className={`shrink-0 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.isactive)}`}>
+                    {user.isactive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-xs text-gray-500">Role</span>
+                    <p className={`mt-0.5 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
+                      {user.role.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Department</span>
+                    <p className="mt-0.5 text-gray-900">{user.department || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Location</span>
+                    <p className="mt-0.5 text-gray-900">{user.location || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Last login</span>
+                    <p className="mt-0.5 text-gray-900">
+                      {user.lastlogin ? new Date(user.lastlogin).toLocaleDateString() : 'Never'}
+                    </p>
+                  </div>
+                </div>
+                {renderUserActions(user)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-12 text-center px-4">
+            <Users className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <h3 className="mb-2 text-lg font-medium text-gray-900">No users found</h3>
+            <p className="text-sm text-gray-600">Try adjusting your search or filter criteria</p>
+          </div>
+        )}
+      </div>
+
+      {/* Users Table — desktop */}
+      <div className="hidden overflow-hidden bg-white border border-gray-100 shadow-sm rounded-2xl lg:block">
         {filteredUsers.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[720px]">
               <thead className="border-b border-gray-200 bg-gray-50">
                 <tr>
                   <th className="px-4 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase sm:px-6">User</th>
@@ -677,41 +773,7 @@ const handleUserUpdate = (user:any) => {
                       {user.lastlogin ? new Date(user.lastlogin).toLocaleDateString() : 'Never'}
                     </td>
                     <td className="px-4 py-4 text-sm font-medium sm:px-6 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        {(currentUser?.role === 'admin' || (currentUser?.role === 'stock-manager' && user.role !== 'admin')) && (
-                          <button
-                            onClick={() => handleToggleStatus(user.id, user.isactive)}
-                            className={`p-1 rounded transition-colors ${
-                              user.isactive 
-                                ? 'text-orange-600 hover:text-orange-900' 
-                                : 'text-green-600 hover:text-green-900'
-                            }`}
-                            title={user.isactive ? 'Deactivate' : 'Activate'}
-                          >
-                            {user.isactive ? <UserX size={16} className="text-red-500" /> : <UserCheck size={16} className="text-green-500" />}
-                          </button>
-                        )}
-                        {(currentUser?.role === 'admin' || (currentUser?.role === 'stock-manager' && user.role !== 'admin')) && (
-                          <>
-                            <button 
-                              onClick={() => handleUserUpdate(user)}
-                              className="p-1 text-blue-600 transition-colors rounded hover:text-blue-900"
-                              title="Edit User"
-                            >
-                              <Edit size={16} className="text-blue-500" />
-                            </button>
-                            {currentUser?.role === 'admin' && user.id !== currentUser.id && (
-                              <button
-                                onClick={() => handleDeleteUser(user.id)}
-                                className="p-1 text-red-600 transition-colors rounded hover:text-red-900"
-                                title="Delete User"
-                              >
-                                <Trash2 size={16} className="text-red-500" />
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
+                      {renderUserActions(user)}
                     </td>
                   </tr>
                 ))}
@@ -729,12 +791,12 @@ const handleUserUpdate = (user:any) => {
 
 
 {showAddModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-sm transition-all duration-300">
-    <div className="w-full max-w-4xl max-h-[90vh] p-8 bg-white rounded-2xl shadow-xl">
-      <h3 className="mb-6 text-2xl font-semibold text-gray-900">
-        Add New Employes 
+  <div className="fixed inset-0 z-50 flex items-end justify-center p-0 backdrop-blur-sm sm:items-center sm:p-4 lg:p-6">
+    <div className="w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] p-4 sm:p-8 bg-white rounded-t-2xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col">
+      <h3 className="mb-4 text-xl font-semibold text-gray-900 sm:mb-6 sm:text-2xl">
+        Add New Employee
       </h3>
-      <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
+      <div className="flex-1 overflow-y-auto min-h-0 sm:max-h-[calc(90vh-8rem)]">
       <form
         onSubmit={handleSubmit}
         className="grid grid-cols-1 md:grid-cols-2 gap-6"
@@ -836,7 +898,7 @@ const handleUserUpdate = (user:any) => {
         </div>
 
         {/* Buttons */}
-        <div className="flex justify-end pt-4 space-x-3 md:col-span-2">
+        <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end sm:gap-3 md:col-span-2">
           <button
             type="button"
             onClick={() => {
@@ -854,7 +916,7 @@ const handleUserUpdate = (user:any) => {
               }
             }}
             disabled={isLoading}
-            className={`flex items-center px-4 py-2 text-gray-700 border border-gray-300 rounded-lg ${
+            className={`flex items-center justify-center w-full px-4 py-2.5 text-gray-700 border border-gray-300 rounded-lg sm:w-auto ${
               isLoading 
                 ? 'opacity-50 cursor-not-allowed' 
                 : 'hover:bg-gray-100'
@@ -867,13 +929,13 @@ const handleUserUpdate = (user:any) => {
           <button
             type="submit"
             disabled={isLoading}
-            className={`flex items-center px-4 py-2 space-x-2 text-white transition-all duration-200 rounded-lg shadow-lg ${
+            className={`flex items-center justify-center w-full px-4 py-2.5 space-x-2 text-white transition-all duration-200 rounded-lg shadow-lg sm:w-auto ${
               isLoading 
                 ? 'bg-gray-400 cursor-not-allowed' 
                 : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 hover:shadow-xl'
             }`}
           >
-            <Save size={16} className="mr-1 text-green-500" />
+            <Save size={16} className="mr-1" />
             {isLoading ? 'Adding User...' : 'Add User'}
           </button>
         </div>
@@ -886,12 +948,12 @@ const handleUserUpdate = (user:any) => {
 
 
 {updateModel && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-sm transition-all duration-300">
-    <div className="w-full max-w-4xl max-h-[90vh] p-8 bg-white rounded-2xl shadow-xl">
-      <h3 className="mb-6 text-2xl font-semibold text-gray-900">
-  Update User Details
+  <div className="fixed inset-0 z-50 flex items-end justify-center p-0 backdrop-blur-sm sm:items-center sm:p-4 lg:p-6">
+    <div className="w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] p-4 sm:p-8 bg-white rounded-t-2xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col">
+      <h3 className="mb-4 text-xl font-semibold text-gray-900 sm:mb-6 sm:text-2xl">
+        Update User Details
       </h3>
-      <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
+      <div className="flex-1 overflow-y-auto min-h-0 sm:max-h-[calc(90vh-8rem)]">
 <form
   onSubmit={(e) => {
     e.preventDefault();
@@ -995,11 +1057,11 @@ const handleUserUpdate = (user:any) => {
   </div>
 
   {/* Buttons */}
-  <div className="flex justify-end pt-4 space-x-3 md:col-span-2">
+  <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end sm:gap-3 md:col-span-2">
     <button
       type="button"
       onClick={() => setUpdateModel(false)}
-      className="flex items-center px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100"
+      className="flex items-center justify-center w-full px-4 py-2.5 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 sm:w-auto"
     >
       <X size={16} className="mr-1 text-red-500" />
       Cancel
@@ -1007,9 +1069,9 @@ const handleUserUpdate = (user:any) => {
 
     <button
       type="submit"
-      className="flex items-center px-4 py-2 space-x-2 text-white transition-all duration-200 rounded-lg shadow-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 hover:shadow-xl"
+      className="flex items-center justify-center w-full px-4 py-2.5 space-x-2 text-white transition-all duration-200 rounded-lg shadow-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 hover:shadow-xl sm:w-auto"
     >
-      <Save size={16} className="mr-1 text-green-500" />
+      <Save size={16} className="mr-1" />
       Update User
     </button>
   </div>
