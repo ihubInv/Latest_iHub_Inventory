@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   useGetUsersQuery,
+  useGetActiveLocationsQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation
@@ -13,6 +14,9 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { validateEmail } from '../../utils/validation';
 import type  { User } from '../../types';
+
+const FORM_INPUT_CLASS =
+  'w-full h-11 px-4 text-sm border border-gray-300 rounded-xl shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-gray-400';
 
 // Function to create employee account in Supabase Auth
 // const createEmployeeAccount = async (userData: FormData) => {
@@ -88,6 +92,8 @@ interface FormData {
 const UserManagement: React.FC = () => {
   const { data: usersResponse } = useGetUsersQuery({});
   const users = usersResponse?.data || [];
+  const { data: activeLocationsResponse } = useGetActiveLocationsQuery();
+  const activeLocations = activeLocationsResponse?.data || [];
 
   const extraDepartmentNames = useMemo(() => {
     const set = new Set<string>();
@@ -171,38 +177,33 @@ const [formData, setFormData] = useState<FormData>({
     }
   ];
 
-  const locationOptions = [
-    { 
-      value: '', 
-      label: 'No Location',
-      icon: <Building2 size={16} />,
-      description: 'No specific location assigned'
-    },
-    { 
-      value: 'Mandi', 
-      label: 'Mandi',
-      icon: <Building2 size={16} />,
-      description: 'Mandi location'
-    },
-    { 
-      value: 'Delhi', 
-      label: 'Delhi',
-      icon: <Building2 size={16} />,
-      description: 'Delhi location'
-    },
-    { 
-      value: 'Bangalore', 
-      label: 'Bangalore',
-      icon: <Building2 size={16} />,
-      description: 'Bangalore location'
-    },
-    { 
-      value: 'Mumbai', 
-      label: 'Mumbai',
-      icon: <Building2 size={16} />,
-      description: 'Mumbai location'
-    }
-  ];
+  const locationOptions = useMemo(() => {
+    const fromDb = activeLocations.map((loc: { name: string; building?: string; description?: string }) => ({
+      value: loc.name,
+      label: loc.name,
+      icon: <Building2 size={16} className="text-blue-500" />,
+      description: [loc.building, loc.description].filter(Boolean).join(' · ') || undefined,
+    }));
+    const namesInDb = new Set(fromDb.map((o) => o.value));
+    const legacy = [...new Set(users.map((u: User) => String(u.location || '').trim()).filter(Boolean))]
+      .filter((name) => !namesInDb.has(name))
+      .map((name) => ({
+        value: name,
+        label: name,
+        icon: <Building2 size={16} className="text-amber-600" />,
+        description: 'From existing user record',
+      }));
+    return [
+      {
+        value: '',
+        label: 'No Location',
+        icon: <Building2 size={16} className="text-gray-400" />,
+        description: 'Not assigned to a storage location',
+      },
+      ...fromDb,
+      ...legacy,
+    ];
+  }, [activeLocations, users]);
 
 
   const filteredUsers = users.filter((user: any) => {
@@ -811,7 +812,7 @@ const handleUserUpdate = (user:any) => {
             value={formData.name}
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-gray-400"
+            className={FORM_INPUT_CLASS}
             placeholder="e.g., Rohit Kumar"
           />
         </div>
@@ -825,7 +826,7 @@ const handleUserUpdate = (user:any) => {
             type="email"
             value={formData.email}
             onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-gray-400"
+            className={FORM_INPUT_CLASS}
             placeholder="rohit@ihubiitmandi.in"
           />
         </div>
@@ -840,7 +841,7 @@ const handleUserUpdate = (user:any) => {
               type={showPassword ? "text" : "password"}
               value={formData.password}
               onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-gray-400"
+              className={`${FORM_INPUT_CLASS} pr-12`}
               placeholder="Leave empty - user will set password via 'Forgot Password'"
             />
             <button
@@ -863,28 +864,35 @@ const handleUserUpdate = (user:any) => {
             emptyLabel="No department"
             extraNames={extraDepartmentNames}
             placeholder="Select department"
-            size="sm"
+            size="md"
             searchable
             variant="bordered"
+            compactTrigger
           />
         </div>
 
-        {/* Row 3 - Column 1 */}
+        {/* Row 3 - Location */}
         <div>
           <AttractiveDropdown
             label="Location"
             options={locationOptions}
             value={formData.location}
             onChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
-            placeholder="Select location"
-            size="sm"
+            placeholder={
+              locationOptions.length <= 1
+                ? 'No locations — add them in Location Management'
+                : 'Select location'
+            }
+            size="md"
             searchable
             variant="bordered"
+            compactTrigger
+            icon={<Building2 className="w-4 h-4 text-gray-500" />}
           />
         </div>
 
-        {/* Row 4 - Role Dropdown */}
-        <div className="md:col-span-2">
+        {/* Row 3 - Role */}
+        <div>
           <AttractiveDropdown
             label="Role"
             options={roleOptions}
@@ -892,8 +900,9 @@ const handleUserUpdate = (user:any) => {
             onChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
             placeholder="Select user role"
             required
-            size="sm"
+            size="md"
             variant="bordered"
+            compactTrigger
           />
         </div>
 
@@ -981,7 +990,7 @@ const handleUserUpdate = (user:any) => {
       value={formData.name}
       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
       required
-      className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-gray-400"
+      className={FORM_INPUT_CLASS}
       placeholder="e.g., Rohit Kumar"
     />
   </div>
@@ -995,7 +1004,7 @@ const handleUserUpdate = (user:any) => {
       type="email"
       value={formData.email}
       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-      className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-gray-400"
+      className={FORM_INPUT_CLASS}
       placeholder="rohit@ihubiitmandi.in"
     />
   </div>
@@ -1022,9 +1031,10 @@ const handleUserUpdate = (user:any) => {
       emptyLabel="No department"
       extraNames={extraDepartmentNames}
       placeholder="Select department"
-      size="sm"
+      size="md"
       searchable
       variant="bordered"
+      compactTrigger
     />
   </div>
 
@@ -1035,14 +1045,20 @@ const handleUserUpdate = (user:any) => {
       options={locationOptions}
       value={formData.location}
       onChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
-      placeholder="Select location"
-      size="sm"
+      placeholder={
+        locationOptions.length <= 1
+          ? 'No locations — add them in Location Management'
+          : 'Select location'
+      }
+      size="md"
       searchable
       variant="bordered"
+      compactTrigger
+      icon={<Building2 className="w-4 h-4 text-gray-500" />}
     />
   </div>
 
-  {/* Row 3 - Role Dropdown */}
+  {/* Row 3 - Role */}
   <div className="md:col-span-2">
     <AttractiveDropdown
       label="Role"
@@ -1051,8 +1067,9 @@ const handleUserUpdate = (user:any) => {
       onChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
       placeholder="Select user role"
       required
-      size="sm"
+      size="md"
       variant="bordered"
+      compactTrigger
     />
   </div>
 

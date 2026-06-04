@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Search } from 'lucide-react';
 
 interface Option {
@@ -26,6 +27,8 @@ interface AttractiveDropdownProps {
   variant?: 'default' | 'bordered' | 'filled';
   /** When set, replaces default max-height / scroll classes on the options list (search stays fixed above). */
   optionsScrollClassName?: string;
+  /** Single-line trigger (hides description under selected label) for aligned form rows */
+  compactTrigger?: boolean;
 }
 
 const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
@@ -42,24 +45,77 @@ const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
   searchable = false,
   size = 'md',
   variant = 'default',
-  optionsScrollClassName
+  optionsScrollClassName,
+  compactTrigger = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const updateMenuPosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const gap = 8;
+    const preferredMax = 320;
+    const spaceBelow = window.innerHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+    const openUp = spaceBelow < 180 && spaceAbove > spaceBelow;
+    const maxHeight = Math.min(preferredMax, openUp ? spaceAbove : spaceBelow);
+
+    if (openUp) {
+      setMenuPosition({
+        bottom: window.innerHeight - rect.top + gap,
+        left: rect.left,
+        width: rect.width,
+        maxHeight: Math.max(120, maxHeight),
+      });
+    } else {
+      setMenuPosition({
+        top: rect.bottom + gap,
+        left: rect.left,
+        width: rect.width,
+        maxHeight: Math.max(120, maxHeight),
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setSearchTerm('');
-      }
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setIsOpen(false);
+      setSearchTerm('');
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setMenuPosition(null);
+      return;
+    }
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [isOpen, updateMenuPosition]);
 
   useEffect(() => {
     if (isOpen && searchable && searchInputRef.current) {
@@ -110,8 +166,76 @@ const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
     }
   };
 
+  const menuPanel = isOpen && menuPosition && (
+    <div
+      ref={menuRef}
+      className="fixed z-[200] flex flex-col bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
+      style={{
+        left: menuPosition.left,
+        width: menuPosition.width,
+        top: menuPosition.top,
+        bottom: menuPosition.bottom,
+        maxHeight: menuPosition.maxHeight,
+      }}
+    >
+      {searchable && (
+        <div className="p-2 sm:p-3 border-b border-gray-100 shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search options..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className={`${optionsScrollClasses} flex-1 min-h-0 overflow-y-auto`}>
+        {filteredOptions.length > 0 ? (
+          filteredOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => handleSelect(option.value)}
+              disabled={option.disabled}
+              className={`
+                w-full px-3 sm:px-4 py-2 sm:py-3 text-left transition-colors duration-150 flex items-center justify-between
+                ${option.disabled
+                  ? 'text-gray-400 cursor-not-allowed bg-gray-50'
+                  : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer'
+                }
+                ${option.value === value ? 'bg-blue-50 text-blue-700' : ''}
+              `}
+            >
+              <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="font-medium text-sm sm:text-base truncate">{option.label}</span>
+                  {option.description && (
+                    <span className="text-xs text-gray-500 truncate">{option.description}</span>
+                  )}
+                </div>
+              </div>
+              {option.value === value && (
+                <Check size={14} className="text-green-500 flex-shrink-0" />
+              )}
+            </button>
+          ))
+        ) : (
+          <div className="px-3 sm:px-4 py-2 sm:py-3 text-gray-500 text-center text-sm">
+            No options found
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} ref={rootRef}>
       {label && (
         <label className="block mb-2 text-sm font-medium text-gray-700">
           {label}
@@ -119,10 +243,14 @@ const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
         </label>
       )}
       
-      <div className="relative" ref={dropdownRef}>
+      <div className="relative">
         <button
+          ref={triggerRef}
           type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
+          onClick={() => {
+            if (disabled) return;
+            setIsOpen((prev) => !prev);
+          }}
           disabled={disabled}
           className={`
             w-full text-left rounded-xl shadow-sm transition-all duration-200
@@ -141,11 +269,11 @@ const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
             <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
               {icon && <span className="text-gray-400 flex-shrink-0">{icon}</span>}
               {selectedOption?.icon && <span className="text-gray-600 flex-shrink-0">{selectedOption.icon}</span>}
-              <div className="flex flex-col min-w-0 flex-1">
+              <div className={`flex min-w-0 flex-1 ${compactTrigger ? 'items-center' : 'flex-col'}`}>
                 <span className={`truncate ${selectedOption ? 'text-gray-900' : 'text-gray-500'}`}>
                   {selectedOption ? selectedOption.label : placeholder}
                 </span>
-                {selectedOption?.description && (
+                {!compactTrigger && selectedOption?.description && (
                   <span className="text-xs text-gray-400 truncate">{selectedOption.description}</span>
                 )}
               </div>
@@ -159,64 +287,7 @@ const AttractiveDropdown: React.FC<AttractiveDropdownProps> = ({
           </div>
         </button>
 
-        {/* Dropdown Menu */}
-        {isOpen && (
-          <div className="absolute z-[60] w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-            {searchable && (
-              <div className="p-2 sm:p-3 border-b border-gray-100">
-                <div className="relative">
-                  <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Search options..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            )}
-            
-            <div className={optionsScrollClasses}>
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleSelect(option.value)}
-                    disabled={option.disabled}
-                    className={`
-                      w-full px-3 sm:px-4 py-2 sm:py-3 text-left transition-colors duration-150 flex items-center justify-between
-                      ${option.disabled 
-                        ? 'text-gray-400 cursor-not-allowed bg-gray-50' 
-                        : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer'
-                      }
-                      ${option.value === value ? 'bg-blue-50 text-blue-700' : ''}
-                    `}
-                  >
-                    <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                      {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <span className="font-medium text-sm sm:text-base truncate">{option.label}</span>
-                        {option.description && (
-                          <span className="text-xs text-gray-500 truncate">{option.description}</span>
-                        )}
-                      </div>
-                    </div>
-                    {option.value === value && (
-                      <Check size={14} className="text-green-500 flex-shrink-0" />
-                    )}
-                  </button>
-                ))
-              ) : (
-                <div className="px-3 sm:px-4 py-2 sm:py-3 text-gray-500 text-center text-sm">
-                  No options found
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {menuPanel && createPortal(menuPanel, document.body)}
       </div>
 
       {error && (

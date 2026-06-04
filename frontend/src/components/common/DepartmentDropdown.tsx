@@ -46,6 +46,8 @@ export interface DepartmentDropdownProps {
   variant?: 'default' | 'bordered' | 'filled'
   /** Tighter panel: ~3 rows visible, list scrolls vertically under search (e.g. register screen). */
   compactOptionsList?: boolean
+  /** Single-line trigger height to match text inputs */
+  compactTrigger?: boolean
 }
 
 function buildOptions(includeEmpty: boolean, emptyLabel: string, extraNames: string[]) {
@@ -107,6 +109,7 @@ const DepartmentDropdown: React.FC<DepartmentDropdownProps> = ({
   placeholder = 'Select department',
   searchable = true,
   compactOptionsList = false,
+  compactTrigger = false,
   ...props
 }) => {
   const options = useMemo(
@@ -123,6 +126,7 @@ const DepartmentDropdown: React.FC<DepartmentDropdownProps> = ({
       icon={<Building2 className="w-4 h-4 text-gray-500" />}
       searchable={searchable}
       optionsScrollClassName={compactOptionsList ? COMPACT_DEPT_SCROLL : undefined}
+      compactTrigger={compactTrigger}
       {...props}
     />
   )
