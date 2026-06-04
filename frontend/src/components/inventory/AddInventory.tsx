@@ -27,6 +27,42 @@ import FinancialYearDropdown from '../common/FinancialYearDropdown';
 import BulkUpload from './BulkUpload';
 import { bulkUploadInventory } from '../../services/bulkUploadService';
 
+/** Split a total amount evenly across N rows (cent-accurate). */
+function distributeRatesEvenly(total: number, parts: number): number[] {
+  if (parts <= 0) return [];
+  const totalCents = Math.round(total * 100);
+  const base = Math.floor(totalCents / parts);
+  let remainder = totalCents - base * parts;
+  const arr = Array(parts).fill(base);
+  for (let i = 0; i < arr.length && remainder > 0; i++) {
+    arr[i] += 1;
+    remainder -= 1;
+  }
+  return arr.map((c) => c / 100);
+}
+
+type MultipleItemRow = {
+  rateinclusivetax: number;
+  totalcost: number;
+  quantity: number;
+  [key: string]: unknown;
+};
+
+function resolveMultiItemRatePool(items: MultipleItemRow[], storedPool: number): number {
+  if (storedPool > 0) return storedPool;
+  return items.reduce((sum, row) => sum + (row.rateinclusivetax || 0), 0);
+}
+
+/** Apply even split of poolTotal across all rows (no-op for a single row). */
+function applyRateDistribution<T extends MultipleItemRow>(items: T[], poolTotal: number): T[] {
+  if (items.length < 2 || poolTotal <= 0) return items;
+  const perRates = distributeRatesEvenly(poolTotal, items.length);
+  return items.map((row, i) => {
+    const qty = row.quantity || 1;
+    return { ...row, rateinclusivetax: perRates[i], totalcost: perRates[i] * qty };
+  });
+}
+
 const AddInventory: React.FC = () => {
   const [createInventoryItem] = useCreateInventoryItemMutation();
   const [uploadAttachment] = useUploadInventoryAttachmentMutation();
@@ -56,6 +92,8 @@ const AddInventory: React.FC = () => {
   const [showAddRowsModal, setShowAddRowsModal] = useState(false);
   const [rowsToAdd, setRowsToAdd] = useState<string>('1');
   const [distributeRateAcrossRows, setDistributeRateAcrossRows] = useState<boolean>(true);
+  /** Total invoice amount to split when 2+ rows (set when first row rate is entered). */
+  const [multiItemRatePool, setMultiItemRatePool] = useState(0);
   const [multipleItems, setMultipleItems] = useState<Array<{
     uniqueid: string;
     assetname: string;
@@ -1601,7 +1639,28 @@ const handleFile = (file?: File) => {
                         {multipleItems.length > 1 && (
                           <button
                             type="button"
-                            onClick={() => setMultipleItems(prev => prev.filter((_, i) => i !== idx))}
+                            onClick={() => {
+                              setMultipleItems((prev) => {
+                                const next = prev.filter((_, i) => i !== idx);
+                                if (next.length === 0) {
+                                  setMultiItemRatePool(0);
+                                  return next;
+                                }
+                                if (next.length === 1) {
+                                  const singleRate = next[0].rateinclusivetax || 0;
+                                  setMultiItemRatePool(singleRate);
+                                  return next;
+                                }
+                                if (distributeRateAcrossRows) {
+                                  const pool = resolveMultiItemRatePool(prev, multiItemRatePool);
+                                  if (pool > 0) {
+                                    setMultiItemRatePool(pool);
+                                    return applyRateDistribution(next, pool);
+                                  }
+                                }
+                                return next;
+                              });
+                            }}
                             className="px-3 py-1.5 text-sm border border-red-300 rounded-md text-red-700 hover:bg-red-50"
                           >
                             Remove
@@ -1904,7 +1963,18 @@ const handleFile = (file?: File) => {
                               onChange={(e) => {
                                 const rate = parseFloat(e.target.value || '0');
                                 const quantity = it.quantity || 1;
-                                setMultipleItems(prev => prev.map((row, i) => i === idx ? { ...row, rateinclusivetax: rate, totalcost: rate * quantity } : row));
+                                setMultipleItems((prev) => {
+                                  const next = prev.map((row, i) =>
+                                    i === idx ? { ...row, rateinclusivetax: rate, totalcost: rate * quantity } : row
+                                  );
+                                  if (next.length === 1) {
+                                    setMultiItemRatePool(rate);
+                                  } else if (distributeRateAcrossRows && idx === 0) {
+                                    setMultiItemRatePool(rate);
+                                    return applyRateDistribution(next, rate);
+                                  }
+                                  return next;
+                                });
                               }}
                               className="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="e.g., 1500.00"
@@ -2237,6 +2307,7 @@ const handleFile = (file?: File) => {
                           await refetchSerialPreview();
                           
                           // Reset form
+                          setMultiItemRatePool(0);
                         setMultipleItems([{ 
                           uniqueid: '', 
                           assetname: '', 
@@ -2321,7 +2392,7 @@ const handleFile = (file?: File) => {
                           className="w-4 h-4 text-blue-600 border-gray-300 rounded"
                         />
                         <label htmlFor="distributeRate" className="text-sm text-gray-700">
-                          Divide last row's Rate (Inclusive Tax) equally across current + new rows
+                          Split total rate evenly across all rows (re-splits when you add or remove rows)
                         </label>
                       </div>
                     </div>
@@ -2373,43 +2444,26 @@ const handleFile = (file?: File) => {
                             return;
                           }
                           const template = multipleItems[multipleItems.length - 1];
-                          const divisor = distributeRateAcrossRows ? (count + 1) : 1;
-                          const baseRate = template.rateinclusivetax || 0;
-                          // Helper to distribute cents exactly
-                          const distributeRates = (total: number, parts: number): number[] => {
-                            if (parts <= 0) return [];
-                            const totalCents = Math.round(total * 100);
-                            const base = Math.floor(totalCents / parts);
-                            let remainder = totalCents - base * parts;
-                            const arr = Array(parts).fill(base);
-                            for (let i = 0; i < arr.length && remainder > 0; i++) {
-                              arr[i] += 1;
-                              remainder -= 1;
-                            }
-                            return arr.map(c => c / 100);
-                          };
-                          let perRates: number[] = [];
-                          if (distributeRateAcrossRows && baseRate > 0) {
-                            perRates = distributeRates(baseRate, divisor);
-                          }
+                          const ratePool = resolveMultiItemRatePool(
+                            multipleItems,
+                            multiItemRatePool > 0
+                              ? multiItemRatePool
+                              : (multipleItems.length === 1 ? (template.rateinclusivetax || 0) : 0)
+                          );
                           (async () => {
                             const asset = template.assetname;
-                            const category = template.assetcategory;
                             const loc = template.locationofitem?.trim() || '';
                             const updated = [...multipleItems];
-                            // Ensure template has a unique ID first (use current index)
                             const templateIndex = updated.length - 1;
                             if (!template.uniqueid) {
                               const newId = await generateMultipleItemUniqueId(asset, loc, templateIndex);
-                              updated[updated.length - 1] = { ...template, uniqueid: newId };
+                              updated[templateIndex] = { ...template, uniqueid: newId };
                             }
-                            // Build new rows with generated unique IDs in sequence
-                            // Start from templateIndex + 1 for new rows
                             const newRows = await Promise.all(
                               Array.from({ length: count }).map(async (_v, i) => {
-                                const rowIndex = templateIndex + 1 + i; // Continue sequence from template
+                                const rowIndex = templateIndex + 1 + i;
                                 const newId = await generateMultipleItemUniqueId(asset, loc, rowIndex);
-                                const rate = (distributeRateAcrossRows && baseRate > 0) ? perRates[i + 1] : template.rateinclusivetax;
+                                const rate = distributeRateAcrossRows ? 0 : template.rateinclusivetax;
                                 return {
                                   uniqueid: newId,
                                   assetname: template.assetname,
@@ -2441,16 +2495,12 @@ const handleFile = (file?: File) => {
                                 };
                               })
                             );
-                            if (distributeRateAcrossRows && baseRate > 0) {
-                              const newTemplateRate = perRates[0];
-                              const currentTemplate = updated[updated.length - 1];
-                              updated[updated.length - 1] = {
-                                ...currentTemplate,
-                                rateinclusivetax: newTemplateRate,
-                                totalcost: newTemplateRate
-                              };
+                            let combined = [...updated, ...newRows];
+                            if (distributeRateAcrossRows && ratePool > 0 && combined.length >= 2) {
+                              combined = applyRateDistribution(combined, ratePool);
+                              setMultiItemRatePool(ratePool);
                             }
-                            setMultipleItems([...updated, ...newRows]);
+                            setMultipleItems(combined);
                             setShowAddRowsModal(false);
                           })();
                         }}
