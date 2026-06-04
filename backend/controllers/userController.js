@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { AppError } = require('../middleware/errorHandler');
@@ -86,10 +87,16 @@ const createUser = asyncHandler(async (req, res) => {
     });
   }
 
+  // When admin leaves password empty, assign a random one (user can reset via Forgot Password)
+  const passwordToStore =
+    password && String(password).trim().length >= 6
+      ? password
+      : crypto.randomBytes(16).toString('hex');
+
   const user = await User.create({
     email,
     name,
-    password,
+    password: passwordToStore,
     role,
     department,
     phone,

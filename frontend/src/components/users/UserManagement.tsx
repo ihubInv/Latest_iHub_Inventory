@@ -311,7 +311,7 @@ const [formData, setFormData] = useState<FormData>({
     }
     
     setErrors(newErrors);
-    return Object.keys(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
   
   
@@ -351,16 +351,18 @@ const [formData, setFormData] = useState<FormData>({
       const result = { success: true, message: 'Employee account created temporarily' };
 
       // Add the new user to the context to update the UI immediately
-      const newUser: Omit<User, 'id' | 'createdat'> = {
-        email: formData.email,
-        name: formData.name,
+      const newUser: Record<string, unknown> = {
+        email: formData.email.trim(),
+        name: formData.name.trim(),
         role: formData.role as 'admin' | 'stock-manager' | 'employee',
         department: formData.department || '',
+        location: formData.location || '',
         isactive: true,
-        lastlogin: new Date()
       };
-      
-      // Add user to context (this will trigger a re-render)
+      if (formData.password.trim()) {
+        newUser.password = formData.password;
+      }
+
       await createUser(newUser).unwrap();
   
       toast.dismiss(loadingToast);
@@ -384,12 +386,17 @@ const [formData, setFormData] = useState<FormData>({
         toast.dismiss(loadingToast);
       }
       
-      // Provide more specific error messages
-      let errorMessage = error.message || 'An unexpected error occurred';
-      if (error.message?.includes('duplicate key') || error.message?.includes('already exists')) {
+      let errorMessage = 'An unexpected error occurred';
+      if (error?.data?.errors?.length) {
+        errorMessage = error.data.errors.map((e: { msg: string }) => e.msg).join('. ');
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error.message?.includes('duplicate key') || error.message?.includes('already exists')) {
         errorMessage = 'An account with this email already exists.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-      
+
       toast.error(`Failed to create employee account: ${errorMessage}`);
     } finally {
       setIsLoading(false);

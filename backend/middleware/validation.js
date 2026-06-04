@@ -24,6 +24,7 @@ const validateUser = [
     .isLength({ min: 2, max: 50 })
     .withMessage('Name must be between 2 and 50 characters'),
   body('password')
+    .optional({ checkFalsy: true })
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long'),
   body('role')
