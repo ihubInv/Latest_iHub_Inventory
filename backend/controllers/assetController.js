@@ -195,13 +195,19 @@ const deleteAsset = asyncHandler(async (req, res) => {
     });
   }
 
-  // Check if asset has inventory items
+  // Check if asset has inventory items (by ID or matching asset name)
   const InventoryItem = require('../models/InventoryItem');
-  const inventoryItems = await InventoryItem.find({ assetid: asset._id });
+  const escapedAssetName = asset.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const inventoryItems = await InventoryItem.find({
+    $or: [
+      { assetid: asset._id },
+      { assetname: { $regex: new RegExp(`^${escapedAssetName}$`, 'i') } }
+    ]
+  });
   if (inventoryItems.length > 0) {
     return res.status(400).json({
       success: false,
-      message: 'Cannot delete asset that has inventory items'
+      message: `Cannot delete asset — it is used in ${inventoryItems.length} inventory item(s)`
     });
   }
 

@@ -73,10 +73,23 @@ const AssetNameDropdown: React.FC<AssetNameDropdownProps> = ({
       .filter(assetName => assetName && assetName !== 'undefined' && assetName !== 'null')
   )];
 
-  // Check if an asset name is used in inventory
+  const getItemCategoryId = (item: any): string => {
+    const value = item.assetcategoryid;
+    if (!value) return '';
+    if (typeof value === 'object') return String(value._id || value.id || '');
+    return String(value);
+  };
+
+  const selectedCategoryId = selectedCategory
+    ? String(selectedCategory.id || selectedCategory._id || '')
+    : '';
+
+  // Check if an asset name is used in inventory for this category
   const isAssetNameUsed = (assetName: string): boolean => {
-    return inventoryItems.some((item: any) => 
-      item.assetname?.toLowerCase() === assetName.toLowerCase()
+    return inventoryItems.some(
+      (item: any) =>
+        getItemCategoryId(item) === selectedCategoryId &&
+        item.assetname?.toLowerCase() === assetName.toLowerCase()
     );
   };
 

@@ -192,7 +192,7 @@ const deleteCategory = asyncHandler(async (req, res) => {
   if (inventoryItems.length > 0) {
     return res.status(400).json({
       success: false,
-      message: 'Cannot delete category that has inventory items'
+      message: `Cannot delete category — it is used in ${inventoryItems.length} inventory item(s)`
     });
   }
 

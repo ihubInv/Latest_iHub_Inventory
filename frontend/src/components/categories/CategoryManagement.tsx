@@ -43,6 +43,41 @@ import {
 import { CRUDToasts } from '../../services/toastService';
 import toast from 'react-hot-toast';
 
+const getEntityId = (value: any): string => {
+  if (!value) return '';
+  if (typeof value === 'object') return String(value._id || value.id || '');
+  return String(value);
+};
+
+const isCategoryInUse = (categoryId: string, items: any[]): boolean => {
+  const id = getEntityId(categoryId);
+  return items.some((item) => getEntityId(item.assetcategoryid) === id);
+};
+
+const isAssetNameInUseForCategory = (
+  assetName: string,
+  categoryId: string,
+  items: any[]
+): boolean => {
+  const id = getEntityId(categoryId);
+  return items.some(
+    (item) =>
+      getEntityId(item.assetcategoryid) === id &&
+      item.assetname?.toLowerCase() === assetName.toLowerCase()
+  );
+};
+
+const getUsedAssetNamesForCategory = (categoryId: string, items: any[]): string[] => {
+  const id = getEntityId(categoryId);
+  return items
+    .filter((item) => getEntityId(item.assetcategoryid) === id)
+    .map((item) => item.assetname)
+    .filter(Boolean);
+};
+
+const getApiErrorMessage = (err: any, fallback = 'Please try again'): string =>
+  err?.data?.message || err?.message || fallback;
+
 const CategoryManagement: React.FC = () => {
   const { data: categoriesResponse, error: categoriesError, isLoading: categoriesLoading } = useGetCategoriesQuery({});
   const categories = categoriesResponse?.data || [];
@@ -84,12 +119,6 @@ const CategoryManagement: React.FC = () => {
     isactive: true
   });
 
-  // Get validation data for the category being edited
-  // Check if asset names are being used in inventory
-  const canRemoveAssetNames = (assetName: string) => {
-    return !inventoryItems.some((item: any) => item.assetname === assetName);
-  };
-
   const [newAsset, setNewAsset] = useState({
     name: '',
     description: '',
@@ -106,10 +135,6 @@ const CategoryManagement: React.FC = () => {
     }
     return String(name);
   };
-
-  const usedInventoryAssetNames = inventoryItems
-    .map((item: any) => item.assetname)
-    .filter(Boolean);
 
   // Function to add asset name to the list
   const addAssetNameToList = () => {
@@ -139,10 +164,10 @@ const CategoryManagement: React.FC = () => {
 
   // Function to remove asset name from the list
   const removeAssetName = (assetName: string) => {
-    // If we're editing a category, check if we can remove asset names
-    if (editingCategory) {
-      // For now, we'll allow removal but the API will validate
-      // In a more advanced implementation, we could check here first
+    const categoryId = editingCategory?.id || editingCategory?._id || '';
+    if (categoryId && isAssetNameInUseForCategory(assetName, categoryId, inventoryItems)) {
+      toast.error(`Cannot remove "${assetName}" — it is used in inventory items`);
+      return;
     }
     
     setNewCategory(prev => ({
@@ -283,12 +308,11 @@ const CategoryManagement: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to delete asset:', err);
       toast.dismiss(loadingToast);
-      
-      // Show detailed error message if it contains inventory item information
-      if (err?.message && err.message.includes('inventory item')) {
-        toast.error(err.message, { duration: 8000 });
+      const errorMessage = getApiErrorMessage(err);
+      if (errorMessage.includes('inventory item')) {
+        toast.error(errorMessage, { duration: 8000 });
       } else {
-        CRUDToasts.deleteError('asset', err?.message || 'Please try again');
+        CRUDToasts.deleteError('asset', errorMessage);
       }
     }
   };
@@ -439,6 +463,11 @@ const CategoryManagement: React.FC = () => {
         }
 
         for (const assetName of namesToRemove) {
+          if (isAssetNameInUseForCategory(assetName, categoryId, inventoryItems)) {
+            throw new Error(
+              `Cannot remove asset name "${assetName}" — it is used in inventory items`
+            );
+          }
           await removeAssetNameFromCategory({ id: categoryId, assetName }).unwrap();
         }
         
@@ -460,16 +489,22 @@ const CategoryManagement: React.FC = () => {
         toast.dismiss(loadingToast);
         
         // Show detailed error message if it contains inventory item information
-        if (err?.message && err.message.includes('inventory item')) {
-          toast.error(err.message, { duration: 8000 });
+        const errorMessage = getApiErrorMessage(err);
+        if (errorMessage.includes('inventory item')) {
+          toast.error(errorMessage, { duration: 8000 });
         } else {
-          CRUDToasts.updateError('category', err?.message || 'Please try again');
+          CRUDToasts.updateError('category', errorMessage);
         }
       }
     }
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
+    if (isCategoryInUse(categoryId, inventoryItems)) {
+      toast.error('Cannot delete category — it is used in inventory items', { duration: 8000 });
+      return;
+    }
+
     const loadingToast = CRUDToasts.deleting('category');
     try {
       await deleteCategory(categoryId).unwrap();
@@ -478,12 +513,11 @@ const CategoryManagement: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to delete category:', err);
       toast.dismiss(loadingToast);
-      
-      // Show detailed error message if it contains inventory item information
-      if (err?.message && err.message.includes('inventory item')) {
-        toast.error(err.message, { duration: 8000 });
+      const errorMessage = getApiErrorMessage(err);
+      if (errorMessage.includes('inventory item')) {
+        toast.error(errorMessage, { duration: 8000 });
       } else {
-        CRUDToasts.deleteError('category', err?.message || 'Please try again');
+        CRUDToasts.deleteError('category', errorMessage);
       }
     }
   };
@@ -810,9 +844,10 @@ const CategoryManagement: React.FC = () => {
                           </button>
                           {(user?.role === 'admin' || user?.role === 'stock-manager') && (
                             <DeleteButtonWithWarning
-                              id={category.id}
+                              id={category.id || category._id}
                               type="category"
                               onDelete={handleDeleteCategory}
+                              inventoryItems={inventoryItems}
                             >
                               <Trash2 size={14} className="sm:w-4 sm:h-4 text-red-500" />
                             </DeleteButtonWithWarning>
@@ -900,7 +935,10 @@ const CategoryManagement: React.FC = () => {
                             categoryId={editingCategory?.id || ''}
                             onRemove={removeAssetName}
                             onEdit={editAssetName}
-                            usedAssetNames={usedInventoryAssetNames}
+                            usedAssetNames={getUsedAssetNamesForCategory(
+                              editingCategory?.id || editingCategory?._id || '',
+                              inventoryItems
+                            )}
                           />
                         ))}
                       </div>
@@ -1224,20 +1262,38 @@ const DeleteButtonWithWarning: React.FC<{
   type: 'category' | 'asset';
   onDelete: (id: string) => void;
   children: React.ReactNode;
-}> = ({ id, type, onDelete, children }) => {
-  // Simplified: Backend will handle validation
-  // If items are in use, backend will return error
-  const canDelete = true;
-  const inventoryItems: string[] = [];
+  inventoryItems?: any[];
+  assetName?: string;
+}> = ({ id, type, onDelete, children, inventoryItems = [], assetName }) => {
+  const matchingItems =
+    type === 'category'
+      ? inventoryItems.filter(
+          (item) => getEntityId(item.assetcategoryid) === getEntityId(id)
+        )
+      : inventoryItems.filter(
+          (item) =>
+            getEntityId(item.assetid) === getEntityId(id) ||
+            (assetName &&
+              item.assetname?.toLowerCase() === assetName.toLowerCase())
+        );
+
+  const canDelete = matchingItems.length === 0;
 
   if (!canDelete) {
-    const tooltipContent = `Cannot delete ${type}. Used by: ${inventoryItems.slice(0, 2).join(', ')}${inventoryItems.length > 2 ? ` and ${inventoryItems.length - 2} more` : ''}`;
-    
+    const itemLabels = matchingItems
+      .slice(0, 2)
+      .map((item) => item.uniqueid || item.assetname || 'inventory item')
+      .join(', ');
+    const tooltipContent = `Cannot delete this ${type} — used in ${matchingItems.length} inventory item(s)${
+      itemLabels ? `: ${itemLabels}` : ''
+    }${matchingItems.length > 2 ? ` and ${matchingItems.length - 2} more` : ''}`;
+
     return (
       <SmartTooltip content={tooltipContent}>
         <button
           disabled
           className="p-1 text-gray-400 transition-colors rounded cursor-not-allowed"
+          title={`Cannot delete ${type} — in use`}
         >
           {children}
         </button>
@@ -1269,8 +1325,10 @@ const AssetNameWithWarning: React.FC<{
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(displayName);
   
-  // Check if this specific asset name is used
-  const isAssetNameUsed = usedAssetNames.includes(displayName);
+  // Check if this specific asset name is used in this category
+  const isAssetNameUsed = usedAssetNames.some(
+    (name) => name.toLowerCase() === displayName.toLowerCase()
+  );
   
   const handleSave = () => {
     if (editValue.trim() && editValue.trim() !== displayName) {
