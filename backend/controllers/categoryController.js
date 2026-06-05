@@ -346,6 +346,75 @@ const removeAssetName = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Update/rename asset name in category
+// @route   PUT /api/categories/:id/assets/:assetName
+// @access  Private (Admin/Stock Manager)
+const updateAssetName = asyncHandler(async (req, res) => {
+  const { assetName } = req.params;
+  const { newAssetName } = req.body;
+
+  if (!newAssetName || !newAssetName.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: 'New asset name is required'
+    });
+  }
+
+  const trimmedNewName = newAssetName.trim();
+
+  const category = await Category.findById(req.params.id);
+
+  if (!category) {
+    return res.status(404).json({
+      success: false,
+      message: 'Category not found'
+    });
+  }
+
+  if (assetName.toLowerCase() === trimmedNewName.toLowerCase()) {
+    const populatedCategory = await Category.findById(category._id)
+      .populate('createdby', 'name email');
+
+    return res.json({
+      success: true,
+      message: 'Asset name unchanged',
+      data: populatedCategory
+    });
+  }
+
+  try {
+    await category.updateAssetName(assetName, trimmedNewName);
+  } catch (error) {
+    return res.status(error.statusCode || 400).json({
+      success: false,
+      message: error.message
+    });
+  }
+
+  const InventoryItem = require('../models/InventoryItem');
+  await InventoryItem.updateMany(
+    {
+      assetname: { $regex: new RegExp(`^${assetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+      assetcategoryid: category._id
+    },
+    {
+      $set: {
+        assetname: trimmedNewName,
+        assetnamefromcategory: trimmedNewName
+      }
+    }
+  );
+
+  const updatedCategory = await Category.findById(category._id)
+    .populate('createdby', 'name email');
+
+  res.json({
+    success: true,
+    message: 'Asset name updated successfully',
+    data: updatedCategory
+  });
+});
+
 // @desc    Toggle asset name status
 // @route   PUT /api/categories/:id/assets/:assetName/toggle
 // @access  Private (Admin/Stock Manager)
@@ -417,6 +486,7 @@ module.exports = {
   getCategoriesWithInventory,
   addAssetName,
   removeAssetName,
+  updateAssetName,
   toggleAssetName,
   getCategoryStats
 };

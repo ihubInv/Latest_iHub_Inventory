@@ -12,6 +12,7 @@ const {
   getCategoriesWithInventory,
   addAssetName,
   removeAssetName,
+  updateAssetName,
   toggleAssetName,
   getCategoryStats
 } = require('../controllers/categoryController');
@@ -610,6 +611,8 @@ router.post('/:id/assets', authorize('admin', 'stock-manager'), validateObjectId
  *         $ref: '#/components/responses/ServerError'
  */
 router.delete('/:id/assets/:assetName', authorize('admin', 'stock-manager'), validateObjectId('id'), removeAssetName);
+
+router.put('/:id/assets/:assetName', authorize('admin', 'stock-manager'), validateObjectId('id'), updateAssetName);
 
 /**
  * @swagger

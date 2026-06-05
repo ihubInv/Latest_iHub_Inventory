@@ -90,14 +90,22 @@ export const categoriesApi = baseApi.injectEndpoints({
     }),
     removeAssetName: builder.mutation<CategoryResponse, { id: string; assetName: string }>({
       query: ({ id, assetName }) => ({
-        url: `/categories/${id}/assets/${assetName}`,
+        url: `/categories/${id}/assets/${encodeURIComponent(assetName)}`,
         method: 'DELETE',
       }),
       invalidatesTags: (_, __, { id }) => [{ type: 'Category', id }, 'Category'],
     }),
+    updateAssetName: builder.mutation<CategoryResponse, { id: string; assetName: string; newAssetName: string }>({
+      query: ({ id, assetName, newAssetName }) => ({
+        url: `/categories/${id}/assets/${encodeURIComponent(assetName)}`,
+        method: 'PUT',
+        body: { newAssetName },
+      }),
+      invalidatesTags: (_, __, { id }) => [{ type: 'Category', id }, 'Category', 'InventoryItem'],
+    }),
     toggleAssetName: builder.mutation<CategoryResponse, { id: string; assetName: string }>({
       query: ({ id, assetName }) => ({
-        url: `/categories/${id}/assets/${assetName}/toggle`,
+        url: `/categories/${id}/assets/${encodeURIComponent(assetName)}/toggle`,
         method: 'PUT',
       }),
       invalidatesTags: (_, __, { id }) => [{ type: 'Category', id }, 'Category'],
@@ -119,5 +127,6 @@ export const {
   useGetCategoryStatsQuery,
   useAddAssetNameMutation,
   useRemoveAssetNameMutation,
+  useUpdateAssetNameMutation,
   useToggleAssetNameMutation,
 } = categoriesApi

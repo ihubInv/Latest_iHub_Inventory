@@ -5,6 +5,8 @@ import {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
   useAddAssetNameMutation,
+  useRemoveAssetNameMutation,
+  useUpdateAssetNameMutation,
   // Note: useCanDeleteCategoryQuery and useCanRemoveAssetNamesFromCategoryQuery
   // are not implemented. Backend handles validation.
   useGetAssetsQuery,
@@ -49,6 +51,8 @@ const CategoryManagement: React.FC = () => {
   const [updateCategory] = useUpdateCategoryMutation();
   const [deleteCategory] = useDeleteCategoryMutation();
   const [addAssetName] = useAddAssetNameMutation();
+  const [removeAssetNameFromCategory] = useRemoveAssetNameMutation();
+  const [updateAssetNameInCategory] = useUpdateAssetNameMutation();
   const { data: assetsResponse } = useGetAssetsQuery({});
   const assets = assetsResponse?.data || [];
 
@@ -94,6 +98,18 @@ const CategoryManagement: React.FC = () => {
 
   const [currentAssetName, setCurrentAssetName] = useState('');
   const [assetNameChanges, setAssetNameChanges] = useState<{ oldName: string; newName: string }[]>([]);
+
+  const getAssetNameStr = (name: string | any): string => {
+    if (typeof name === 'string') return name;
+    if (typeof name === 'object' && name !== null) {
+      return name.assetname || name.name || name.label || String(name);
+    }
+    return String(name);
+  };
+
+  const usedInventoryAssetNames = inventoryItems
+    .map((item: any) => item.assetname)
+    .filter(Boolean);
 
   // Function to add asset name to the list
   const addAssetNameToList = () => {
@@ -387,8 +403,10 @@ const CategoryManagement: React.FC = () => {
           }
         });
         
+        const categoryId = editingCategory.id || editingCategory._id;
+
         await updateCategory({
-          id: editingCategory.id,
+          id: categoryId,
           data: {
             name: newCategory.name,
             type: newCategory.type,
@@ -396,9 +414,33 @@ const CategoryManagement: React.FC = () => {
             isactive: newCategory.isactive
           }
         }).unwrap();
-        
-        // Note: Asset names are managed separately through add/remove asset name endpoints
-        // Asset name changes are not sent to the category update endpoint
+
+        const originalNames = (editingCategory.assetnames || []).map(getAssetNameStr);
+        const currentNames = newCategory.assetnames.map(getAssetNameStr);
+
+        for (const { oldName, newName } of assetNameChanges) {
+          await updateAssetNameInCategory({
+            id: categoryId,
+            assetName: oldName,
+            newAssetName: newName
+          }).unwrap();
+        }
+
+        const renamedMap = Object.fromEntries(
+          assetNameChanges.map(change => [change.oldName, change.newName])
+        );
+        const effectiveOriginal = originalNames.map(name => renamedMap[name] || name);
+
+        const namesToAdd = currentNames.filter(name => !effectiveOriginal.includes(name));
+        const namesToRemove = effectiveOriginal.filter(name => !currentNames.includes(name));
+
+        for (const assetName of namesToAdd) {
+          await addAssetName({ id: categoryId, assetName }).unwrap();
+        }
+
+        for (const assetName of namesToRemove) {
+          await removeAssetNameFromCategory({ id: categoryId, assetName }).unwrap();
+        }
         
         toast.dismiss(loadingToast);
         setEditingCategory(null);
@@ -858,7 +900,7 @@ const CategoryManagement: React.FC = () => {
                             categoryId={editingCategory?.id || ''}
                             onRemove={removeAssetName}
                             onEdit={editAssetName}
-                            usedAssetNames={inventoryItems}
+                            usedAssetNames={usedInventoryAssetNames}
                           />
                         ))}
                       </div>

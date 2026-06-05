@@ -189,6 +189,33 @@ categorySchema.methods.removeAssetName = function(assetName) {
   return this.save();
 };
 
+// Instance method to update/rename asset name
+categorySchema.methods.updateAssetName = function(oldName, newName) {
+  const asset = this.assetnames.find(asset =>
+    asset.name.toLowerCase() === oldName.toLowerCase()
+  );
+
+  if (!asset) {
+    const error = new Error('Asset name not found');
+    error.statusCode = 404;
+    return Promise.reject(error);
+  }
+
+  const duplicate = this.assetnames.find(a =>
+    a.name.toLowerCase() === newName.toLowerCase() &&
+    a.name.toLowerCase() !== oldName.toLowerCase()
+  );
+
+  if (duplicate) {
+    const error = new Error('Asset name already exists in this category');
+    error.statusCode = 400;
+    return Promise.reject(error);
+  }
+
+  asset.name = newName;
+  return this.save();
+};
+
 // Instance method to toggle asset name status
 categorySchema.methods.toggleAssetName = function(assetName) {
   const asset = this.assetnames.find(asset => 
