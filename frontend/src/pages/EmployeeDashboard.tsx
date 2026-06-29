@@ -496,7 +496,7 @@ const EmployeeDashboard: React.FC = () => {
                 </div>
               </div>
               <Link
-                to="/issued-items"
+                to="/employee/issued-items"
                 className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
               >
                 View All →
@@ -564,7 +564,7 @@ const EmployeeDashboard: React.FC = () => {
             {issuedToEmployee.length > 4 && (
               <div className="mt-4 text-center">
                 <Link
-                  to="/issued-items"
+                  to="/employee/issued-items"
                   className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                 >
                   View All {issuedToEmployee.length} Items →

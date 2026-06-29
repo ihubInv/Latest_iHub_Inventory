@@ -24,9 +24,15 @@ const CreateRequest: React.FC = () => {
 
   const [formData, setFormData] = useState({
     itemtype: '',
-    purpose: '',
+    purposeSelection: '',
+    customPurpose: '',
     justification: '',
   });
+
+  const resolvedPurpose =
+    formData.purposeSelection === 'Other'
+      ? formData.customPurpose.trim()
+      : formData.purposeSelection;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -47,14 +53,16 @@ const CreateRequest: React.FC = () => {
       await createRequest({
         employeeid: user?.id || '',
         employeename: user?.name || '',
-        ...formData
+        itemtype: formData.itemtype,
+        purpose: resolvedPurpose,
+        justification: formData.justification,
       }).unwrap();
-
 
       // Reset form
       setFormData({
         itemtype: '',
-        purpose: '',
+        purposeSelection: '',
+        customPurpose: '',
         justification: '',
       });
 
@@ -67,18 +75,6 @@ const CreateRequest: React.FC = () => {
 
     setIsSubmitting(false);
   };
-
-  const commonPurposes = [
-    'New Employee Setup',
-    'Replacement for Damaged Item',
-    'Upgrade Existing Equipment',
-    'Project Requirements',
-    'Remote Work Setup',
-    'Training Purposes',
-    'Temporary Assignment',
-    'Department Expansion',
-    'Other'
-  ];
 
   return (
     <div className="space-y-6">
@@ -153,18 +149,28 @@ const CreateRequest: React.FC = () => {
           <div>
             <PurposeDropdown
               label="Purpose *"
-              value={formData.purpose}
-              onChange={(value) => setFormData(prev => ({ ...prev, purpose: value }))}
+              value={formData.purposeSelection}
+              onChange={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  purposeSelection: value,
+                  customPurpose: value === 'Other' ? prev.customPurpose : '',
+                }))
+              }
               placeholder="Select purpose"
               required
               searchable
             />
-            {formData.purpose === 'Other' && (
+            {formData.purposeSelection === 'Other' && (
               <input
                 type="text"
+                value={formData.customPurpose}
                 placeholder="Please specify the purpose"
+                required
                 className="w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onChange={(e) => setFormData(prev => ({ ...prev, purpose: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, customPurpose: e.target.value }))
+                }
               />
             )}
           </div>
@@ -219,7 +225,8 @@ const CreateRequest: React.FC = () => {
               type="button"
               onClick={() => setFormData({
                 itemtype: '',
-                purpose: '',
+                purposeSelection: '',
+                customPurpose: '',
                 justification: '',
               })}
               className="flex items-center px-6 py-2 space-x-2 text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -229,7 +236,13 @@ const CreateRequest: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || formData.justification.length < 5 || categories.length === 0 || !formData.itemtype}
+              disabled={
+                isSubmitting ||
+                formData.justification.length < 5 ||
+                categories.length === 0 ||
+                !formData.itemtype ||
+                !resolvedPurpose
+              }
               className="flex items-center px-6 py-2 space-x-2 text-white transition-all duration-200 rounded-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send size={16} />

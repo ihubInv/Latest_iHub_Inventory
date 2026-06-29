@@ -22,12 +22,26 @@ interface PurposeDropdownProps {
   className?: string;
   error?: string;
   size?: 'sm' | 'md' | 'lg';
+  searchable?: boolean;
 }
+
+export const PURPOSE_OPTION_VALUES = [
+  'New Employee Setup',
+  'Replacement for Damaged Item',
+  'Upgrade Existing Equipment',
+  'Project Requirements',
+  'Remote Work Setup',
+  'Training Purposes',
+  'Temporary Assignment',
+  'Department Expansion',
+  'Other',
+] as const;
 
 const PurposeDropdown: React.FC<PurposeDropdownProps> = ({
   value,
   onChange,
   placeholder = "Select purpose",
+  searchable = true,
   ...props
 }) => {
   const options = [
@@ -94,7 +108,7 @@ const PurposeDropdown: React.FC<PurposeDropdownProps> = ({
       onChange={onChange}
       placeholder={placeholder}
       icon={<Target className="w-4 h-4" />}
-      searchable
+      searchable={searchable}
       {...props}
     />
   );

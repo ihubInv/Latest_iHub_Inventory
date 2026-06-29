@@ -3,7 +3,7 @@ import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { useGetCategoriesQuery, useUpdateRequestMutation } from '../../store/api'
 import CategoryDropdown from '../common/CategoryDropdown'
-import PurposeDropdown from '../common/PurposeDropdown'
+import PurposeDropdown, { PURPOSE_OPTION_VALUES } from '../common/PurposeDropdown'
 import toast from 'react-hot-toast'
 
 export function getRequestDocumentId(request: any): string {
@@ -29,14 +29,31 @@ const EditPendingRequestModal: React.FC<EditPendingRequestModalProps> = ({
 
   const [itemtype, setItemtype] = useState('')
   const [quantity, setQuantity] = useState(1)
-  const [purpose, setPurpose] = useState('')
+  const [purposeSelection, setPurposeSelection] = useState('')
+  const [customPurpose, setCustomPurpose] = useState('')
   const [justification, setJustification] = useState('')
+
+  const resolvedPurpose =
+    purposeSelection === 'Other' ? customPurpose.trim() : purposeSelection
 
   useEffect(() => {
     if (!isOpen || !request) return
     setItemtype(request.itemtype || '')
     setQuantity(typeof request.quantity === 'number' ? request.quantity : Number(request.quantity) || 1)
-    setPurpose(request.purpose || '')
+    const storedPurpose = (request.purpose || '').trim()
+    if (
+      PURPOSE_OPTION_VALUES.includes(storedPurpose as (typeof PURPOSE_OPTION_VALUES)[number]) &&
+      storedPurpose !== 'Other'
+    ) {
+      setPurposeSelection(storedPurpose)
+      setCustomPurpose('')
+    } else if (storedPurpose) {
+      setPurposeSelection('Other')
+      setCustomPurpose(storedPurpose)
+    } else {
+      setPurposeSelection('')
+      setCustomPurpose('')
+    }
     setJustification(request.justification || '')
   }, [isOpen, request])
 
@@ -47,7 +64,7 @@ const EditPendingRequestModal: React.FC<EditPendingRequestModalProps> = ({
       toast.error('Invalid request')
       return
     }
-    if (!itemtype.trim() || !purpose.trim() || justification.trim().length < 5) {
+    if (!itemtype.trim() || !resolvedPurpose || justification.trim().length < 5) {
       toast.error('Please fill all required fields (justification at least 5 characters)')
       return
     }
@@ -57,7 +74,7 @@ const EditPendingRequestModal: React.FC<EditPendingRequestModalProps> = ({
         data: {
           itemtype: itemtype.trim(),
           quantity: Math.max(1, Number(quantity) || 1),
-          purpose: purpose.trim(),
+          purpose: resolvedPurpose,
           justification: justification.trim(),
         },
       }).unwrap()
@@ -99,13 +116,24 @@ const EditPendingRequestModal: React.FC<EditPendingRequestModalProps> = ({
         </div>
 
         <div>
-          <PurposeDropdown label="Purpose *" value={purpose} onChange={setPurpose} placeholder="Select purpose" required />
-          {purpose === 'Other' && (
+          <PurposeDropdown
+            label="Purpose *"
+            value={purposeSelection}
+            onChange={(value) => {
+              setPurposeSelection(value)
+              if (value !== 'Other') setCustomPurpose('')
+            }}
+            placeholder="Select purpose"
+            required
+          />
+          {purposeSelection === 'Other' && (
             <input
               type="text"
+              value={customPurpose}
               placeholder="Specify purpose"
+              required
               className="w-full px-3 py-2 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onChange={(e) => setPurpose(e.target.value)}
+              onChange={(e) => setCustomPurpose(e.target.value)}
             />
           )}
         </div>
